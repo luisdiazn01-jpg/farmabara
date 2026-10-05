@@ -6,7 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- CONFIGURADO PARA HETZNER 5.161.229.243 ---
 const config = {
   user: 'api_tienda',
   password: 'TiendaMaster2026*',
@@ -21,53 +20,60 @@ const config = {
 const EMPRESA_ID = '001';
 const SUCURSAL_ID = 1;
 
-// RUTA QUE USARA TU WEB FARMABARA
 app.post('/api/pedido-web', async (req, res) => {
   console.log('Pedido recibido:', req.body);
   try {
     let pool = await sql.connect(config);
     let folioResult = await pool.request()
-    .input('psCveEmp', sql.Char(10), EMPRESA_ID)
-    .execute('spx_FolioPedido');
+   .input('psCveEmp', sql.Char(10), EMPRESA_ID)
+   .execute('spx_FolioPedido');
     let nuevoFolio = parseInt(folioResult.recordset[0].val_fol) + 1;
     const { cve_cte, nombre, tel, total, iva, tipo_pago, pago_con, carrito } = req.body;
     await pool.request()
-    .input('psIdEmp', sql.Char(250), EMPRESA_ID)
-    .input('psSucursal', sql.Int, SUCURSAL_ID)
-    .input('psNumPed', sql.Int, nuevoFolio)
-    .input('psCVE_CTE', sql.Char(250), String(cve_cte || 'MOSTRADOR'))
-    .input('psFecPedido', sql.DateTime, new Date())
-    .input('psFecEntrega', sql.DateTime, new Date())
-    .input('psIva', sql.Char(250), String(iva || 0))
-    .input('psCVE_VEN', sql.Char(250), 'WEB')
-    .input('psCVE_TIP_MDA', sql.Char(250), '1')
-    .input('psVAL_TIP_MDA', sql.Char(250), '1')
-    .input('psSUB_TOT', sql.Char(250), String(total))
-    .input('psIVA_TOT', sql.Char(250), String(iva))
-    .input('psTIP_PED', sql.Char(250), 'WEB')
-    .input('psTIPO_PAGO', sql.Char(50), tipo_pago || 'EFECTIVO')
-    .input('psPAGO_CON', sql.Float, pago_con || total)
-    .input('psOBS_PED', sql.Char(250), `WEB ${nombre} Tel:${tel}`.substring(0,250))
-    .execute('spi_THPedido');
+   .input('psIdEmp', sql.Char(250), EMPRESA_ID)
+   .input('psSucursal', sql.Int, SUCURSAL_ID)
+   .input('psNumPed', sql.Int, nuevoFolio)
+   .input('psCVE_CTE', sql.Char(250), String(cve_cte || 'MOSTRADOR'))
+   .input('psFecPedido', sql.DateTime, new Date())
+   .input('psFecEntrega', sql.DateTime, new Date())
+   .input('psIva', sql.Char(250), String(iva || 0))
+   .input('psCVE_VEN', sql.Char(250), 'WEB')
+   .input('psCVE_TIP_MDA', sql.Char(250), '1')
+   .input('psVAL_TIP_MDA', sql.Char(250), '1')
+   .input('psSUB_TOT', sql.Char(250), String(total))
+   .input('psIVA_TOT', sql.Char(250), String(iva))
+   .input('psTIP_PED', sql.Char(250), 'WEB')
+   .input('psTIPO_PAGO', sql.Char(50), tipo_pago || 'EFECTIVO')
+   .input('psPAGO_CON', sql.Float, pago_con || total)
+   .input('psOBS_PED', sql.Char(250), `WEB ${nombre} Tel:${tel}`.substring(0,250))
+   .execute('spi_THPedido');
     let partida = 1;
     for (let p of carrito) {
       await pool.request()
-      .input('piIdSucursal', sql.Int, SUCURSAL_ID)
-      .input('psIdEmp', sql.Char(10), EMPRESA_ID)
-      .input('piNum', sql.Int, nuevoFolio)
-      .input('piCan', sql.Decimal(18,2), p.cantidad)
-      .input('psCvePro', sql.Char(30), p.codigo)
-      .input('pdPrePro', sql.Decimal(9,2), p.precio)
-      .input('pdDescCte', sql.Decimal(9,2), 0)
-      .input('pdDescFin', sql.Decimal(9,2), 0)
-      .input('psObsPro', sql.Char(250), '')
-      .input('psNumPar', sql.Int, partida)
-      .input('piPreDescLis', sql.Decimal(9,2), p.precio)
-      .input('pdIva', sql.Decimal(18,2), 0)
-      .input('sTipo', sql.VarChar(2), 'N')
-      .execute('spi_DetPedElec');
+     .input('piIdSucursal', sql.Int, SUCURSAL_ID)
+     .input('psIdEmp', sql.Char(10), EMPRESA_ID)
+     .input('piNum', sql.Int, nuevoFolio)
+     .input('piCan', sql.Decimal(18,2), p.cantidad)
+     .input('psCvePro', sql.Char(30), p.codigo)
+     .input('pdPrePro', sql.Decimal(9,2), p.precio)
+     .input('pdDescCte', sql.Decimal(9,2), 0)
+     .input('pdDescFin', sql.Decimal(9,2), 0)
+     .input('psObsPro', sql.Char(250), '')
+     .input('psNumPar', sql.Int, partida)
+     .input('piPreDescLis', sql.Decimal(9,2), p.precio)
+     .input('pdIva', sql.Decimal(18,2), 0)
+     .input('sTipo', sql.VarChar(2), 'N')
+     .execute('spi_DetPedElec');
       partida++;
     }
     await pool.close();
-    console.log(`Pedido ${nuevoFolio} guardado en SYSPTV como PENDIENTE`);
-    res.json({ ok: true, folio: nuevoFolio, msg: 'Pedido
+    console.log('Pedido ' + nuevoFolio + ' guardado');
+    res.json({ ok: true, folio: nuevoFolio, msg: 'Pedido en SYSPTV' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/', (req,res) => res.send('FarmaBara puente SYSPTV activo'));
+app.listen(3000, () => console.log('Servidor en puerto 3000'));
