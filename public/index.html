@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmaBara - Tu farmacia barata en 30 min</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',sans-serif;background:#f8f7ff}.scroll-hide::-webkit-scrollbar{display:none}.scroll-hide{-ms-overflow-style:none;scrollbar-width:none}</style>
+</head>
+<body class="min-h-screen pb-28">
+<header class="sticky top-0 z-50 bg-white shadow-sm border-b">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+    <div class="flex items-center gap-2 font-extrabold text-[22px]">
+      <div class="w-8 h-8 bg-[#6C5CE7] rounded-full flex items-center justify-center text-white">💊</div>
+      <span class="text-[#6C5CE7]">Farma</span><span class="text-[#2d3436]">Bara</span>
+    </div>
+    <div class="flex-1 relative">
+      <input id="buscador" type="text" placeholder="Buscar: paracetamol, ibuprofeno, Ensure..." class="w-full bg-[#f1f0ff] border border-[#e8e6ff] rounded-full px-5 py-2.5 pl-11 text-sm outline-none focus:ring-2 focus:ring-[#6C5CE7]">
+      <span class="absolute left-4 top-2.5">🔍</span>
+    </div>
+  </div>
+</header>
+<div class="max-w-7xl mx-auto px-4">
+  <div class="flex gap-3 mt-5 overflow-x-auto pb-2">
+    <button data-cat="all" class="cat-btn bg-[#6C5CE7] text-white px-5 py-2 rounded-full text-sm font-semibold">Todo</button>
+    <button data-cat="Antibiotico" class="cat-btn bg-white border px-5 py-2 rounded-full text-sm">💊 Antibiótico</button>
+    <button data-cat="Dolor" class="cat-btn bg-white border px-5 py-2 rounded-full text-sm">🤕 Dolor</button>
+    <button data-cat="Gripe" class="cat-btn bg-white border px-5 py-2 rounded-full text-sm">🤧 Gripe</button>
+    <button data-cat="Nutricion" class="cat-btn bg-white border px-5 py-2 rounded-full text-sm">🥛 Nutrición</button>
+  </div>
+  <div class="mt-5 bg-gradient-to-r from-[#6C5CE7] to-[#a29bfe] rounded-2xl p-5 md:p-7 text-white flex justify-between items-center">
+    <div><p class="text-xs bg-white/20 inline-block px-3 py-1 rounded-full mb-2">PROMOS DE OCTUBRE</p><h2 class="text-2xl md:text-3xl font-extrabold leading-tight">Hasta 30% OFF<br>en antibióticos</h2><p class="text-sm mt-2 opacity-90">+ Receta digital gratis hoy</p></div>
+    <div class="text-6xl md:text-8xl opacity-30">💊</div>
+  </div>
+  <h3 class="mt-8 font-bold text-lg">Lo más pedido cerca de ti</h3>
+  <div id="grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4"></div>
+</div>
+<div id="carrito-bar" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-[#2d3436] text-white rounded-full px-6 py-3.5 shadow-2xl flex items-center gap-4 z-50 hidden">
+  <div class="bg-[#6C5CE7] w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold" id="cart-count">0</div>
+  <span id="cart-total" class="font-bold">$0.00</span><span class="opacity-60">→</span><button class="font-bold">Ver carrito</button>
+</div>
+<script>
+let productos=[],carrito=[],categoriaActiva='all';
+async function cargar(){const res=await fetch('./productos.json?v='+Date.now());productos=await res.json();render();}
+function render(){
+  const q=document.getElementById('buscador').value.toLowerCase();
+  const grid=document.getElementById('grid');
+  let filtrados=productos.filter(p=>{const matchQ=(p.nombre+p.sku).toLowerCase().includes(q);const matchCat=categoriaActiva==='all'||(p.categoria||'').toLowerCase().includes(categoriaActiva.toLowerCase());return matchQ&&matchCat;});
+  grid.innerHTML=filtrados.map(p=>{
+    const precio=parseFloat(p.precio);const precioTachado=(precio*1.33).toFixed(2);const img=p.imagen||`img/${p.sku}.jpg`;
+    return `<div class="bg-white rounded-2xl p-3 shadow-sm border"><div class="relative bg-[#fafafe] rounded-xl h-[130px] flex items-center justify-center overflow-hidden"><span class="absolute top-2 left-2 bg-[#ff7675] text-white text-[10px] font-bold px-2 py-1 rounded-full">-25%</span><img src="${img}" onerror="this.src='https://via.placeholder.com/300x200?text=${encodeURIComponent(p.nombre)}'" alt="${p.nombre}" class="max-h-full max-w-full object-contain p-2"></div><p class="mt-3 text-[11px] text-gray-400">SKU: ${p.sku}</p><h4 class="font-semibold text-[13px] leading-tight line-clamp-2 h-8">${p.nombre}</h4><div class="mt-2"><p class="text-[11px] text-gray-400 line-through">$${precioTachado} MXN</p><p class="font-extrabold">$${precio.toFixed(2)} MXN</p></div><button onclick="agregar('${p.sku}')" class="mt-3 w-full bg-[#6C5CE7] hover:bg-[#5a4bd1] text-white rounded-full py-2 text-sm font-bold">+ Agregar</button></div>`;
+  }).join('');
+}
+function agregar(sku){const p=productos.find(x=>x.sku===sku);carrito.push(p);document.getElementById('cart-count').textContent=carrito.length;document.getElementById('cart-total').textContent=`$${carrito.reduce((s,x)=>s+parseFloat(x.precio),0).toFixed(2)}`;document.getElementById('carrito-bar').classList.remove('hidden');}
+document.getElementById('buscador').addEventListener('input',render);
+document.querySelectorAll('.cat-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.cat-btn').forEach(b=>b.className='cat-btn bg-white border px-5 py-2 rounded-full text-sm');btn.className='cat-btn bg-[#6C5CE7] text-white px-5 py-2 rounded-full text-sm font-semibold';categoriaActiva=btn.dataset.cat;render();});});
+cargar();
+</script>
+</body>
+</html>
