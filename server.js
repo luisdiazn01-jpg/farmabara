@@ -1,95 +1,95 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import sql from 'mssql';
+const express = require('express');
+const sql = require('mssql');
+const cors = require('cors');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-const dbConfig = {
-  user: process.env.DB_USER || 'sa',
-  password: process.env.DB_PASS || 'FarmaBara2024!',
-  server: process.env.DB_SERVER || 'mssql',
-  database: process.env.DB_NAME || 'master',
-  options: { encrypt: false, trustServerCertificate: true }
+// --- CONFIGURA AQUI TU SQL SERVER DE JARDINES ---
+const config = {
+  user: 'sa', // tu usuario sa
+  password: 'TU_PASSWORD_AQUI', // <- CAMBIA ESTO
+  server: 'TU_IP_PUBLICA_O_LOCAL', // ej: 187.123.45.67 o 192.168.1.10
+  database: 'tiendaMaster',
+  options: {
+    encrypt: false,
+    trustServerCertificate: true
+  }
 };
 
-const otps = new Map();
+const EMPRESA_ID = '001';
+const SUCURSAL_ID = 1;
 
-async function initDB(){
- try{
-  const pool = await sql.connect(dbConfig);
-  await pool.request().query(`
-    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Clientes' AND xtype='U')
-    CREATE TABLE Clientes (
-      id INT IDENTITY(1,1) PRIMARY KEY,
-      telefono VARCHAR(20) UNIQUE NOT NULL,
-      nombre VARCHAR(100),
-      direccion VARCHAR(250),
-      creado DATETIME DEFAULT GETDATE()
-    );
-    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Pedidos' AND xtype='U')
-    CREATE TABLE Pedidos (
-      id INT IDENTITY(1,1) PRIMARY KEY,
-      cliente_id INT FOREIGN KEY REFERENCES Clientes(id),
-      productos NVARCHAR(MAX),
-      total DECIMAL(10,2),
-      status VARCHAR(20) DEFAULT 'pendiente',
-      fecha DATETIME DEFAULT GETDATE()
-    );
-  `);
-  console.log('DB OK - Tablas creadas');
- }catch(e){ console.log('DB aun iniciando...', e.message); }
-}
-initDB();
+// RUTA QUE USARA TU WEB FARMABARA
+app.post('/api/pedido-web', async (req, res) => {
+  console.log('Pedido recibido:', req.body);
 
-// MODO PRUEBA: genera OTP y lo regresa visible
-app.post('/api/login-request', (req,res)=>{
-  const { telefono } = req.body;
-  if(!telefono) return res.status(400).json({error:'telefono requerido'});
-  const otp = Math.floor(100000 + Math.random()*900000).toString();
-  otps.set(telefono, { otp, expires: Date.now()+5*60*1000 });
-  console.log(`OTP para ${telefono}: ${otp}`);
-  const waLink = `https://wa.me/525534244092?text=Tu%20codigo%20FarmaBara%20es%20${otp}`;
-  res.json({ ok:true, otp, waLink });
-});
+  try {
+    let pool = await sql.connect(config);
 
-app.post('/api/verify-otp', async (req,res)=>{
-  const { telefono, otp, nombre, direccion } = req.body;
-  const record = otps.get(telefono);
-  if(!record || record.otp !== otp || record.expires < Date.now()){
-    return res.status(400).json({error:'codigo invalido o expirado'});
-  }
-  otps.delete(telefono);
-  try{
-    const pool = await sql.connect(dbConfig);
-    let result = await pool.request().query(`SELECT * FROM Clientes WHERE telefono='${telefono}'`);
-    let cliente;
-    if(result.recordset.length===0){
-      const insert = await pool.request().query(`INSERT INTO Clientes (telefono,nombre,direccion) OUTPUT INSERTED.* VALUES ('${telefono}','${(nombre||'').replace(/'/g,"''")}','${(direccion||'').replace(/'/g,"''")}')`);
-      cliente = insert.recordset[0];
-    }else{
-      cliente = result.recordset[0];
+    // 1. Sacar folio nuevo
+    let folioResult = await pool.request()
+     .input('psCveEmp', sql.Char(10), EMPRESA_ID)
+     .execute('spx_FolioPedido');
+
+    let nuevoFolio = parseInt(folioResult.recordset[0].val_fol) + 1;
+
+    // 2. Datos que vienen de tu web
+    const { cve_cte, nombre, tel, total, iva, tipo_pago, pago_con, carrito } = req.body;
+
+    // 3. Crear cabecera TH_PEDIDO con STA_PED='P'
+    await pool.request()
+     .input('psIdEmp', sql.Char(250), EMPRESA_ID)
+     .input('psSucursal', sql.Int, SUCURSAL_ID)
+     .input('psNumPed', sql.Int, nuevoFolio)
+     .input('psCVE_CTE', sql.Char(250), String(cve_cte || 'MOSTRADOR'))
+     .input('psFecPedido', sql.DateTime, new Date())
+     .input('psFecEntrega', sql.DateTime, new Date())
+     .input('psIva', sql.Char(250), String(iva || 0))
+     .input('psCVE_VEN', sql.Char(250), 'WEB')
+     .input('psCVE_TIP_MDA', sql.Char(250), '1')
+     .input('psVAL_TIP_MDA', sql.Char(250), '1')
+     .input('psSUB_TOT', sql.Char(250), String(total))
+     .input('psIVA_TOT', sql.Char(250), String(iva))
+     .input('psTIP_PED', sql.Char(250), 'WEB')
+     .input('psTIPO_PAGO', sql.Char(50), tipo_pago || 'EFECTIVO')
+     .input('psPAGO_CON', sql.Float, pago_con || total)
+     .input('psOBS_PED', sql.Char(250), `WEB ${nombre} Tel:${tel}`.substring(0,250))
+     .execute('spi_THPedido');
+
+    // 4. Meter cada producto
+    let partida = 1;
+    for (let p of carrito) {
+      await pool.request()
+       .input('piIdSucursal', sql.Int, SUCURSAL_ID)
+       .input('psIdEmp', sql.Char(10), EMPRESA_ID)
+       .input('piNum', sql.Int, nuevoFolio)
+       .input('piCan', sql.Decimal(18,2), p.cantidad)
+       .input('psCvePro', sql.Char(30), p.codigo)
+       .input('pdPrePro', sql.Decimal(9,2), p.precio)
+       .input('pdDescCte', sql.Decimal(9,2), 0)
+       .input('pdDescFin', sql.Decimal(9,2), 0)
+       .input('psObsPro', sql.Char(250), '')
+       .input('psNumPar', sql.Int, partida)
+       .input('piPreDescLis', sql.Decimal(9,2), p.precio)
+       .input('pdIva', sql.Decimal(18,2), 0)
+       .input('sTipo', sql.VarChar(2), 'N')
+       .execute('spi_DetPedElec');
+      partida++;
     }
-    res.json({ ok:true, cliente });
-  }catch(e){
-    res.json({ ok:true, cliente:{ telefono, nombre, direccion, id: Date.now() }, modo:'demo' });
+
+    await pool.close();
+
+    console.log(`Pedido ${nuevoFolio} guardado en SYSPTV como PENDIENTE`);
+    res.json({ ok: true, folio: nuevoFolio, msg: 'Pedido en SYSPTV' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
-app.post('/api/pedidos', async (req,res)=>{
-  const { cliente_id, telefono, productos, total } = req.body;
-  try{
-    const pool = await sql.connect(dbConfig);
-    await pool.request().query(`INSERT INTO Pedidos (cliente_id, productos, total) VALUES (${cliente_id||'NULL'}, '${JSON.stringify(productos).replace(/'/g,"''")}', ${total})`);
-    res.json({ok:true});
-  }catch(e){ res.json({ok:true, demo:true}); }
-});
+app.get('/', (req,res) => res.send('FarmaBara puente SYSPTV activo'));
 
-app.get('/admin', (req,res)=> res.sendFile(path.join(__dirname,'public','admin.html')));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=> console.log('FarmaBara v3 en '+PORT));
+app.listen(3000, () => console.log('Servidor en puerto 3000'));
