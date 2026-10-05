@@ -1,131 +1,86 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>FarmaBara - Entrega 30-45 min</title>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tienda SYSPTV - Pedidos Web</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-<style>.scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}</style>
-</head>
-<body class="bg-[#F8F7FF] font-sans">
+</head><body class="bg-gray-50">
+<header class="bg-black text-white p-4 sticky top-0 z-50"><div class="max-w-5xl mx-auto flex justify-between"><b>🛒 TIENDA WEB - SYSPTV</b><span id="cart-count" class="bg-white text-black px-2 rounded-full text-sm">0</span></div></header>
 
-<!-- HEADER COMPACTO 56px -->
-<header class="bg-white sticky top-0 z-40 shadow-sm">
-  <div class="max-w-7xl mx-auto px-4 h-[56px] flex items-center justify-between gap-3">
-    <div class="flex items-center gap-2">
-      <div class="w-8 h-8 bg-[#6D28D9] rounded-lg flex items-center justify-center text-white font-bold">💊</div>
-      <span class="font-extrabold text-[20px] tracking-tight">Farma<span class="text-[#6D28D9]">Bara</span></span>
-    </div>
-    <div class="flex-1 max-w-[520px] relative hidden md:block">
-      <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[13px]"></i>
-      <input id="buscador" placeholder="Buscar medicamentos, vitaminas, cuidado..." class="w-full bg-[#F3F4F6] rounded-full pl-9 pr-4 h-9 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#6D28D9]"/>
-    </div>
-    <div class="flex items-center gap-3">
-      <span class="hidden md:flex items-center gap-1.5 text-[13px] font-medium"><i class="fa-solid fa-location-dot text-[#6D28D9]"></i> Entrega en 30-45 min <i class="fa-solid fa-chevron-down text-[10px] text-gray-400"></i></span>
-      <button id="btnCarritoHeader" class="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center relative"><i class="fa-solid fa-bag-shopping text-[13px]"></i><span id="cartCountHeader" class="absolute -top-1 -right-1 bg-[#6D28D9] text-[10px] w-4 h-4 rounded-full flex items-center justify-center">0</span></button>
-    </div>
-  </div>
-  <!-- Buscador móvil -->
-  <div class="md:hidden px-4 pb-3">
-    <div class="relative"><i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i><input id="buscadorMovil" placeholder="Buscar: paracetamol, ibuprofeno..." class="w-full bg-[#F3F4F6] rounded-full pl-9 pr-4 h-10 text-[14px]"/></div>
-  </div>
-</header>
-
-<div class="max-w-7xl mx-auto px-4 py-4">
-  <!-- BANNER -->
-  <div class="bg-gradient-to-r from-[#6D28D9] to-[#8B5CF6] rounded-[16px] p-4 text-white flex justify-between items-center relative overflow-hidden">
-    <div><p class="text-[11px] bg-white/20 inline px-2 py-1 rounded-full">🔥 Promos Octubre</p><h2 class="text-[22px] font-extrabold leading-tight mt-1">Hasta 25% OFF</h2><p class="text-[12px] opacity-80 mt-1">En medicamentos seleccionados • Mínimo $200 • Válido octubre</p></div>
-    <div class="text-6xl opacity-20">💊</div>
-  </div>
-
-  <!-- CATEGORIAS -->
-  <div class="flex gap-2 overflow-x-auto scrollbar-hide py-3">
-    <button data-cat="todos" class="cat-btn bg-[#6D28D9] text-white px-4 py-2 rounded-full text-xs font-bold shrink-0">Todo</button>
-    <button data-cat="Dolor" class="cat-btn bg-white px-4 py-2 rounded-full text-xs shadow-sm shrink-0">Dolor</button>
-    <button data-cat="Antibiótico" class="cat-btn bg-white px-4 py-2 rounded-full text-xs shadow-sm shrink-0">Antibiótico</button>
-    <button data-cat="Gripe" class="cat-btn bg-white px-4 py-2 rounded-full text-xs shadow-sm shrink-0">Gripe</button>
-    <button data-cat="Infantil" class="cat-btn bg-white px-4 py-2 rounded-full text-xs shadow-sm shrink-0">Infantil</button>
-    <button data-cat="Vitaminas" class="cat-btn bg-white px-4 py-2 rounded-full text-xs shadow-sm shrink-0">Vitaminas</button>
-  </div>
-
-  <div id="productosGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+<main class="max-w-5xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="md:col-span-2"><div id="productos" class="grid grid-cols-2 md:grid-cols-3 gap-3">Cargando productos...</div></div>
+<div class="bg-white rounded-xl p-4 shadow h-fit sticky top-20">
+<h2 class="font-bold mb-3">Tu Pedido</h2>
+<div id="carrito-vacio" class="text-gray-400 text-sm">Carrito vacío</div>
+<div id="carrito-lista" class="space-y-2 mb-3"></div>
+<div id="carrito-total" class="font-bold text-lg hidden">Total: $<span id="total-txt">0</span></div>
+<hr class="my-3">
+<h3 class="font-bold text-sm mb-2">Datos de Entrega</h3>
+<input id="inp-nombre" placeholder="Nombre completo (ALBERTO DIAZ)" class="w-full p-2 border rounded mb-2 text-sm">
+<input id="inp-telefono" placeholder="Tel 10 dígitos (5534244092)" class="w-full p-2 border rounded mb-2 text-sm">
+<input id="inp-direccion" placeholder="Calle y número" class="w-full p-2 border rounded mb-2 text-sm">
+<input id="inp-colonia" placeholder="Colonia (San José)" class="w-full p-2 border rounded mb-2 text-sm">
+<input id="inp-referencia" placeholder="Referencia (casa azul, portón negro)" class="w-full p-2 border rounded mb-2 text-sm">
+<select id="inp-pago" class="w-full p-2 border rounded mb-2 text-sm"><option>EFECTIVO</option><option>TRANSFERENCIA</option></select>
+<div id="ubicacion-box" class="bg-blue-50 p-2 rounded text-xs mb-3">
+<span id="ubicacion-status">📍 Ubicación no capturada</span><br>
+<button onclick="pedirUbicacion()" class="mt-1 text-blue-600 underline">📍 Capturar mi ubicación GPS</button>
 </div>
-
-<!-- CARRITO FLOTANTE -->
-<div id="carritoFlotante" class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-black text-white rounded-full px-5 py-3.5 flex items-center justify-between shadow-2xl z-50 hidden">
-  <div class="flex items-center gap-3"><div id="cartCountFloat" class="bg-white text-black w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">0</div><span id="cartTotalFloat" class="font-bold text-sm">$0.00</span><span class="text-xs text-gray-400">• 30-45 min</span></div>
-  <button onclick="abrirCarrito()" class="font-bold text-sm">Ver carrito →</button>
+<button onclick="pagarConUbicacion()" id="btn-pagar" class="w-full bg-black text-white py-3 rounded-xl font-bold disabled:bg-gray-300" disabled>PAGAR Y ENVIAR A SYSPTV</button>
 </div>
+</main>
 
-<!-- MODAL CARRITO + CLIENTE -->
-<div id="modalCarrito" class="fixed inset-0 bg-black/50 z-[60] hidden"><div class="absolute bottom-0 w-full bg-white rounded-t-[24px] max-h-[90vh] flex flex-col"><div class="p-5 border-b flex justify-between items-center"><h3 class="font-bold">Tu pedido FarmaBara</h3><button onclick="cerrarCarrito()" class="w-8 h-8 bg-gray-100 rounded-full"><i class="fa-solid fa-xmark"></i></button></div><div id="listaCarrito" class="flex-1 overflow-auto p-4 space-y-2"></div><div class="p-5 border-t bg-gray-50"><div class="grid grid-cols-1 gap-2 mb-3"><input id="clienteNombre" placeholder="Tu nombre*" class="border rounded-full px-4 py-3 text-sm"/><input id="clienteTel" placeholder="WhatsApp / Teléfono*" class="border rounded-full px-4 py-3 text-sm"/><input id="clienteDir" placeholder="Dirección de entrega" class="border rounded-full px-4 py-3 text-sm"/></div><div class="grid grid-cols-2 gap-2 mb-3"><select id="tipoPago" class="border rounded-full px-4 py-3 text-sm"><option>EFECTIVO</option><option>TARJETA</option><option>TRANSFERENCIA</option></select><input id="pagoCon" type="number" placeholder="Pago con $" class="border rounded-full px-4 py-3 text-sm"/></div><div class="flex justify-between font-bold text-lg mb-3"><span>Total</span><span id="totalTxt">$0.00</span></div><button onclick="enviarPedido()" id="btnPagar" class="w-full bg-[#6D28D9] text-white font-bold py-4 rounded-full">Pagar y enviar a SYSPTV</button><p class="text-[10px] text-center text-gray-400 mt-2">Se guarda en TH_PEDIDO / TD_PEDIDO + ClientesWeb + InteraccionesWeb</p></div></div></div>
+<div id="modal-ubicacion" style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+  <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
+    <div class="text-5xl mb-2">📍</div>
+    <h3 class="font-bold text-lg">¿Permitir ubicación para entrega más rápida?</h3>
+    <p class="text-sm text-gray-500 mt-2">Como Rappi, usamos tu GPS para llegar exacto.</p>
+    <p id="modal-status" class="text-xs text-blue-600 mt-3 font-bold">Esperando permiso...</p>
+    <button onclick="pedirUbicacion()" class="w-full mt-4 bg-black text-white py-3 rounded-xl">📍 Sí, permitir ubicación</button>
+    <button onclick="cerrarModalUbi()" class="w-full mt-2 bg-gray-100 py-3 rounded-xl">Omitir, solo dirección escrita</button>
+  </div>
+</div>
 
 <script>
-const API_URL = '/api/pedido-web';
-let productos = [];
-let carrito = []; let catActiva='todos'; let filtro='';
-
+let carrito=[]; let totalCarrito=0; let clienteUbicacion={lat:null,lng:null,permiso:'pendiente'};
 async function cargarProductos(){
   try{
-    let r = await fetch('/api/productos');
-    let d = await r.json();
-    if(Array.isArray(d) && d.length>0){
-      productos = d.map((p,i)=>({id:i+1, nombre:p.nombre, precio:parseFloat(p.precio), precio_antes:parseFloat(p.precio_antes||p.precio*1.3), desc:p.descuento||'-25%', categoria:p.categoria||'Dolor', imagen:p.imagen_url||'https://via.placeholder.com/300?text=FarmaBara', stock:p.stock||100, codigo:p.codigo}));
-    } else throw 'vacio';
+    const r=await fetch('/api/productos'); const data=await r.json();
+    document.getElementById('productos').innerHTML=data.map(p=>`<div class="bg-white p-3 rounded-xl shadow"><div class="font-bold text-sm">${p.DES_ART||p.COD_ART}</div><div class="text-xs text-gray-500">${p.COD_ART}</div><div class="font-bold mt-2">$${p.PRECIO||0}</div><button onclick="addCarrito('${p.COD_ART}','${(p.DES_ART||'').replace(/'/g,'')}',${p.PRECIO||0})" class="mt-2 w-full bg-black text-white py-1 rounded text-sm">+ Agregar</button></div>`).join('');
   }catch(e){
-    productos = [
-      {id:1,nombre:'Paracetamol 500mg 20 tabletas',precio:33,precio_antes:44,desc:'-25%',categoria:'Dolor',imagen:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',stock:100,codigo:'7501000123456'},
-      {id:2,nombre:'Ibuprofeno 400mg 20 caps',precio:52,precio_antes:68,desc:'-23%',categoria:'Dolor',imagen:'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=400',stock:50,codigo:'7501000123457'},
-      {id:3,nombre:'Amoxicilina 500mg 12 caps',precio:89,precio_antes:120,desc:'-25%',categoria:'Antibiótico',imagen:'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400',stock:30,codigo:'7501000123458'}
-    ];
+    document.getElementById('productos').innerHTML=`<div class="bg-white p-3 rounded-xl shadow"><div class="font-bold">COCA 600ML</div><div class="text-xs">COCA600</div><div class="font-bold mt-2">$25</div><button onclick="addCarrito('COCA600','COCA 600ML',25)" class="mt-2 w-full bg-black text-white py-1 rounded text-sm">+ Agregar</button></div><div class="bg-white p-3 rounded-xl shadow"><div class="font-bold">SABRITAS 45G</div><div class="text-xs">SAB45</div><div class="font-bold mt-2">$18</div><button onclick="addCarrito('SAB45','SABRITAS 45G',18)" class="mt-2 w-full bg-black text-white py-1 rounded text-sm">+ Agregar</button></div>`;
   }
-  renderProductos();
 }
-
-function renderProductos(){
-  let filtrados = productos.filter(p=>{ let porCat = catActiva==='todos' || p.categoria===catActiva; let porBusq = p.nombre.toLowerCase().includes(filtro.toLowerCase()); return porCat && porBusq; });
-  document.getElementById('productosGrid').innerHTML = filtrados.map(p=>`
-    <div class="bg-white rounded-[16px] p-3 border border-gray-100 shadow-sm flex flex-col">
-      <div class="relative"><span class="absolute top-1 left-1 bg-black text-white text-[10px] font-bold px-2 py-1 rounded-full">${p.desc}</span><img src="${p.imagen}" onerror="this.src='https://via.placeholder.com/300'" class="w-full h-24 object-contain bg-gray-50 rounded-xl"/></div>
-      <p class="text-[12px] font-medium mt-2 leading-tight h-8 overflow-hidden">${p.nombre}</p>
-      <p class="text-[10px] text-gray-400 mt-1">${p.categoria} • ${p.codigo}</p>
-      <div class="mt-2 flex items-end justify-between"><div><p class="text-[11px] text-gray-400 line-through">$${p.precio_antes.toFixed(2)}</p><p class="font-extrabold text-[15px]">$${p.precio.toFixed(2)}</p></div><button onclick="agregar(${p.id})" class="w-8 h-8 bg-[#6D28D9] text-white rounded-full flex items-center justify-center"><i class="fa-solid fa-plus text-[11px]"></i></button></div>
-    </div>
-  `).join('');
+function addCarrito(codigo,nombre,precio){ let ex=carrito.find(x=>x.codigo===codigo); if(ex) ex.cantidad++; else carrito.push({codigo,nombre,precio,cantidad:1}); renderCarrito(); }
+function renderCarrito(){
+  const lista=document.getElementById('carrito-lista'); const vacio=document.getElementById('carrito-vacio');
+  if(!carrito.length){ lista.innerHTML=''; vacio.style.display='block'; document.getElementById('carrito-total').classList.add('hidden'); document.getElementById('btn-pagar').disabled=true; document.getElementById('cart-count').innerText='0'; return; }
+  vacio.style.display='none'; totalCarrito=0;
+  lista.innerHTML=carrito.map((p,i)=>{ totalCarrito+=p.precio*p.cantidad; return `<div class="flex justify-between text-sm"><span>${p.nombre} x${p.cantidad}</span><span>$${p.precio*p.cantidad} <button onclick="carrito.splice(${i},1);renderCarrito()" class="text-red-500">x</button></span></div>`}).join('');
+  document.getElementById('total-txt').innerText=totalCarrito.toFixed(2); document.getElementById('carrito-total').classList.remove('hidden'); document.getElementById('btn-pagar').disabled=false; document.getElementById('cart-count').innerText=carrito.length;
 }
-
-function agregar(id){ let prod=productos.find(p=>p.id===id); let it=carrito.find(c=>c.id===id); if(it) it.cantidad++; else carrito.push({...prod,cantidad:1}); actualizarCarrito(); }
-function actualizarCarrito(){
-  let total=carrito.reduce((s,i)=>s+i.precio*i.cantidad,0); let count=carrito.reduce((s,i)=>s+i.cantidad,0);
-  document.getElementById('cartCountHeader').innerText=count; document.getElementById('cartCountFloat').innerText=count; document.getElementById('cartTotalFloat').innerText='$'+total.toFixed(2); document.getElementById('totalTxt').innerText='$'+total.toFixed(2);
-  document.getElementById('carritoFlotante').classList.toggle('hidden',count===0);
-  document.getElementById('listaCarrito').innerHTML=carrito.map(i=>`<div class="flex justify-between items-center bg-gray-50 rounded-xl p-3"><div><p class="text-[13px] font-medium">${i.nombre}</p><p class="text-[11px] text-gray-500">$${i.precio} x ${i.cantidad}</p></div><span class="font-bold text-sm">$${(i.precio*i.cantidad).toFixed(2)}</span></div>`).join('') || '<p class="text-center text-gray-400 py-6 text-sm">Carrito vacío</p>';
+async function pedirUbicacion(){
+  const s1=document.getElementById('ubicacion-status'); const s2=document.getElementById('modal-status');
+  if(s1) s1.innerText='📍 Solicitando permiso...'; if(s2) s2.innerText='📍 Solicitando permiso...';
+  return new Promise((resolve)=>{
+    if(!navigator.geolocation){ clienteUbicacion.permiso='no_soporte'; resolve(clienteUbicacion); return; }
+    navigator.geolocation.getCurrentPosition((pos)=>{
+      clienteUbicacion.lat=pos.coords.latitude; clienteUbicacion.lng=pos.coords.longitude; clienteUbicacion.permiso='si';
+      if(s1) s1.innerHTML=`✅ Ubicación: ${clienteUbicacion.lat.toFixed(5)}, ${clienteUbicacion.lng.toFixed(5)} <a target="_blank" href="https://www.google.com/maps?q=${clienteUbicacion.lat},${clienteUbicacion.lng}" class="text-blue-600 underline">Ver Maps</a>`;
+      if(s2) s2.innerText=`✅ ${clienteUbicacion.lat.toFixed(5)}, ${clienteUbicacion.lng.toFixed(5)}`;
+      setTimeout(cerrarModalUbi,1200); resolve(clienteUbicacion);
+    },()=>{ clienteUbicacion.permiso='denegado'; if(s1) s1.innerText='❌ Sin permiso, usaremos dirección escrita'; if(s2) s2.innerText='❌ Permiso denegado'; resolve(clienteUbicacion); },{enableHighAccuracy:true,timeout:10000});
+  });
 }
-function abrirCarrito(){ document.getElementById('modalCarrito').classList.remove('hidden'); } function cerrarCarrito(){ document.getElementById('modalCarrito').classList.add('hidden'); }
-document.getElementById('buscador')?.addEventListener('input', e=>{ filtro=e.target.value; renderProductos(); });
-document.getElementById('buscadorMovil')?.addEventListener('input', e=>{ filtro=e.target.value; renderProductos(); });
-document.querySelectorAll('.cat-btn').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('.cat-btn').forEach(x=>x.className='cat-btn bg-white px-4 py-2 rounded-full text-xs shadow-sm shrink-0'); b.className='cat-btn bg-[#6D28D9] text-white px-4 py-2 rounded-full text-xs font-bold shrink-0'; catActiva=b.dataset.cat; renderProductos(); }));
-async function enviarPedido(){
-  if(carrito.length===0) return alert('Carrito vacío');
-  let nombre=document.getElementById('clienteNombre').value; let tel=document.getElementById('clienteTel').value;
-  if(!nombre||!tel) return alert('Pon nombre y teléfono para registrarte como cliente');
-  let btn=document.getElementById('btnPagar'); btn.disabled=true; btn.innerText='Registrando cliente...';
-  try{
-    // 1. Registrar cliente en ClientesWeb
-    let rc = await fetch('/api/clientes/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre, telefono:tel, direccion:document.getElementById('clienteDir').value})});
-    let dc = await rc.json(); let cliente_id = dc.cliente_id || null;
-    btn.innerText='Enviando a SYSPTV...';
-    // 2. Mandar pedido a TH_PEDIDO / TD_PEDIDO
-    let total=carrito.reduce((s,i)=>s+i.precio*i.cantidad,0);
-    let r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({total, iva:total*0.16, tipo_pago:document.getElementById('tipoPago').value, pago_con:parseFloat(document.getElementById('pagoCon').value)||total, carrito:carrito.map(c=>({codigo:c.codigo,cantidad:c.cantidad,precio:c.precio})), cliente_id})});
-    let d=await r.json();
-    if(d.ok){ alert('¡Pedido #'+d.folio+' creado en tiendaMaster! Te llegará en 30-45 min'); carrito=[]; actualizarCarrito(); cerrarCarrito(); } else alert('Error: '+d.error);
-  }catch(e){ alert('Error: '+e.message); }
-  finally{ btn.disabled=false; btn.innerText='Pagar y enviar a SYSPTV'; }
+function cerrarModalUbi(){ document.getElementById('modal-ubicacion').style.display='none'; }
+async function pagarConUbicacion(){
+  const nombre=document.getElementById('inp-nombre').value.trim(); const telefono=document.getElementById('inp-telefono').value.trim(); const direccion=document.getElementById('inp-direccion').value.trim(); const colonia=document.getElementById('inp-colonia').value.trim(); const referencia=document.getElementById('inp-referencia').value.trim();
+  if(!nombre||!telefono||!direccion){ alert('Faltan datos'); return; }
+  if(!clienteUbicacion.lat && clienteUbicacion.permiso==='pendiente'){ await pedirUbicacion(); }
+  document.getElementById('btn-pagar').innerText='ENVIANDO...'; document.getElementById('btn-pagar').disabled=true;
+  const res=await fetch('/api/pedido-web',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productos:carrito.map(c=>({codigo:c.codigo,cantidad:c.cantidad,precio:c.precio})),total:totalCarrito,nombre,telefono,direccion,colonia,referencia,lat:clienteUbicacion.lat,lng:clienteUbicacion.lng})});
+  const data=await res.json();
+  if(data.ok){ alert(`✅ Pedido #${data.folio} creado!\nCliente: ${data.cve_cte}\n${data.maps_url||''}`); carrito=[]; renderCarrito(); } else alert('Error:'+data.error);
+  document.getElementById('btn-pagar').innerText='PAGAR Y ENVIAR A SYSPTV'; document.getElementById('btn-pagar').disabled=false;
 }
-document.getElementById('btnCarritoHeader').addEventListener('click', abrirCarrito);
-cargarProductos();
+cargarProductos(); window.addEventListener('load',()=>{ setTimeout(()=>pedirUbicacion(),800); });
 </script>
-</body>
-</html>
+</body></html>
