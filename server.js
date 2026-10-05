@@ -3,7 +3,18 @@ import sql from 'mssql';
 import cors from 'cors';
 
 const app = express();
-app.use(cors());
+
+// Quitar CSP que bloquea
+app.use((req, res, next) => {
+  res.removeHeader('Content-Security-Policy');
+  res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src *;");
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 const config = {
@@ -15,6 +26,8 @@ const config = {
 };
 
 app.get('/', (req,res) => res.send('FarmaBara puente SYSPTV activo OK'));
+
+app.options('/api/pedido-web', cors());
 
 app.post('/api/pedido-web', async (req,res)=>{
  try{
