@@ -11,9 +11,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 const dbConfig = {
-  user: process.env.DB_USER || 'sa',
-  password: process.env.DB_PASSWORD || 'TuPassword123',
-  server: process.env.DB_SERVER || 'host.docker.internal',
+  user: process.env.DB_USER || 'api_tienda',
+  password: process.env.DB_PASSWORD || 'TiendaMaster2026*',
+  server: process.env.DB_SERVER || '5.161.229.243',
   database: process.env.DB_DATABASE || 'tiendaMaster',
   options: { encrypt: false, trustServerCertificate: true },
 };
