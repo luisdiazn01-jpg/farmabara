@@ -1,86 +1,65 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tienda SYSPTV - Pedidos Web</title>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title id="titulo">TIENDA WEB - SYSPTV</title>
 <script src="https://cdn.tailwindcss.com"></script>
-</head><body class="bg-gray-50">
-<header class="bg-black text-white p-4 sticky top-0 z-50"><div class="max-w-5xl mx-auto flex justify-between"><b>🛒 TIENDA WEB - SYSPTV</b><span id="cart-count" class="bg-white text-black px-2 rounded-full text-sm">0</span></div></header>
-
-<main class="max-w-5xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-<div class="md:col-span-2"><div id="productos" class="grid grid-cols-2 md:grid-cols-3 gap-3">Cargando productos...</div></div>
-<div class="bg-white rounded-xl p-4 shadow h-fit sticky top-20">
-<h2 class="font-bold mb-3">Tu Pedido</h2>
-<div id="carrito-vacio" class="text-gray-400 text-sm">Carrito vacío</div>
-<div id="carrito-lista" class="space-y-2 mb-3"></div>
-<div id="carrito-total" class="font-bold text-lg hidden">Total: $<span id="total-txt">0</span></div>
-<hr class="my-3">
-<h3 class="font-bold text-sm mb-2">Datos de Entrega</h3>
-<input id="inp-nombre" placeholder="Nombre completo (ALBERTO DIAZ)" class="w-full p-2 border rounded mb-2 text-sm">
-<input id="inp-telefono" placeholder="Tel 10 dígitos (5534244092)" class="w-full p-2 border rounded mb-2 text-sm">
-<input id="inp-direccion" placeholder="Calle y número" class="w-full p-2 border rounded mb-2 text-sm">
-<input id="inp-colonia" placeholder="Colonia (San José)" class="w-full p-2 border rounded mb-2 text-sm">
-<input id="inp-referencia" placeholder="Referencia (casa azul, portón negro)" class="w-full p-2 border rounded mb-2 text-sm">
-<select id="inp-pago" class="w-full p-2 border rounded mb-2 text-sm"><option>EFECTIVO</option><option>TRANSFERENCIA</option></select>
-<div id="ubicacion-box" class="bg-blue-50 p-2 rounded text-xs mb-3">
-<span id="ubicacion-status">📍 Ubicación no capturada</span><br>
-<button onclick="pedirUbicacion()" class="mt-1 text-blue-600 underline">📍 Capturar mi ubicación GPS</button>
-</div>
-<button onclick="pagarConUbicacion()" id="btn-pagar" class="w-full bg-black text-white py-3 rounded-xl font-bold disabled:bg-gray-300" disabled>PAGAR Y ENVIAR A SYSPTV</button>
-</div>
-</main>
-
-<div id="modal-ubicacion" style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-  <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
-    <div class="text-5xl mb-2">📍</div>
-    <h3 class="font-bold text-lg">¿Permitir ubicación para entrega más rápida?</h3>
-    <p class="text-sm text-gray-500 mt-2">Como Rappi, usamos tu GPS para llegar exacto.</p>
-    <p id="modal-status" class="text-xs text-blue-600 mt-3 font-bold">Esperando permiso...</p>
-    <button onclick="pedirUbicacion()" class="w-full mt-4 bg-black text-white py-3 rounded-xl">📍 Sí, permitir ubicación</button>
-    <button onclick="cerrarModalUbi()" class="w-full mt-2 bg-gray-100 py-3 rounded-xl">Omitir, solo dirección escrita</button>
+</head>
+<body class="bg-gray-100">
+<header class="bg-black text-white p-3 font-bold flex justify-between">
+  <span id="nombreTienda">🛒 TIENDA WEB - SYSPTV</span>
+  <a href="/admin.html" class="text-xs bg-white text-black px-2 py-1 rounded">Admin</a>
+</header>
+<div class="flex flex-col md:flex-row p-4 gap-4">
+  <div id="productos" class="grid grid-cols-2 gap-3 flex-1"></div>
+  <div class="bg-white p-4 rounded-lg shadow w-full md:w-96">
+    <h3 class="font-bold">Tu Pedido</h3>
+    <div id="carrito" class="text-sm my-2"></div>
+    <div class="font-bold">Total: $<span id="total">0</span></div>
+    <h4 class="font-bold mt-4">Datos de Entrega</h4>
+    <input id="nombre" placeholder="Nombre" class="border w-full p-2 rounded mt-2">
+    <input id="telefono" placeholder="Tel / WhatsApp" class="border w-full p-2 rounded mt-2">
+    <input id="direccion" placeholder="Calle y Número" class="border w-full p-2 rounded mt-2">
+    <input id="colonia" placeholder="Colonia" class="border w-full p-2 rounded mt-2">
+    <input id="ciudad" placeholder="Ciudad" class="border w-full p-2 rounded mt-2">
+    <select id="pago" class="border w-full p-2 rounded mt-2"><option>EFECTIVO</option><option>TRANSFERENCIA</option></select>
+    <div id="ubicacionBox" class="bg-blue-50 p-2 rounded mt-2 text-xs">
+      <span id="ubiText">📍 Sin ubicación</span><br>
+      <button onclick="capturarGPS()" class="text-blue-600 underline">📍 Capturar mi ubicación GPS</button>
+      <input type="hidden" id="lat"><input type="hidden" id="lng">
+    </div>
+    <button id="btnEnviar" onclick="enviarPedido()" class="bg-black text-white w-full p-3 rounded mt-3 font-bold">ENVIAR PEDIDO</button>
   </div>
 </div>
-
 <script>
-let carrito=[]; let totalCarrito=0; let clienteUbicacion={lat:null,lng:null,permiso:'pendiente'};
-async function cargarProductos(){
+let carrito=[], total=0, cfg={};
+async function init(){
+  const c=await fetch('/api/config').then(r=>r.json());
+  cfg=c; document.getElementById('nombreTienda').innerText=c.NOMBRE_TIENDA||'TIENDA WEB - SYSPTV'; document.getElementById('titulo').innerText=c.NOMBRE_TIENDA;
+  const prods=await fetch('/api/productos').then(r=>r.json());
+  document.getElementById('productos').innerHTML=prods.map(p=>`
+    <div class="bg-white p-3 rounded shadow"><div class="font-bold text-sm">${p.nombre}</div><div class="text-xs opacity-60">${p.cve}</div><div class="font-bold">$${p.precio}</div><button onclick="add('${p.cve}','${p.nombre}',${p.precio})" class="bg-black text-white w-full mt-2 text-xs p-1 rounded">+ Agregar</button></div>
+  `).join('');
+}
+function add(cve,nombre,precio){ let e=carrito.find(x=>x.cve==cve); if(e) e.cantidad++; else carrito.push({cve,nombre,precio,cantidad:1}); render(); }
+function render(){ let h='', t=0; carrito.forEach(i=>{ t+=i.precio*i.cantidad; h+=`${i.nombre} x${i.cantidad} $${i.precio*i.cantidad}<br>`; }); document.getElementById('carrito').innerHTML=h||'Vacío'; document.getElementById('total').innerText=t; total=t; }
+function capturarGPS(){ navigator.geolocation.getCurrentPosition(pos=>{ document.getElementById('lat').value=pos.coords.latitude; document.getElementById('lng').value=pos.coords.longitude; document.getElementById('ubiText').innerHTML=`✅ Ubicación: ${pos.coords.latitude}, ${pos.coords.longitude} <a target="_blank" href="https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}" class="underline">Ver Maps</a>`; }); }
+async function enviarPedido(){
+  const btn=document.getElementById('btnEnviar'); btn.innerText='ENVIANDO...'; btn.disabled=true;
+  const data={ nombre:document.getElementById('nombre').value, telefono:document.getElementById('telefono').value, direccion:document.getElementById('direccion').value, colonia:document.getElementById('colonia').value, ciudad:document.getElementById('ciudad').value, total, productos:carrito, lat:document.getElementById('lat').value, lng:document.getElementById('lng').value };
+  if(!data.nombre||!data.telefono) { alert('Falta nombre y teléfono'); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false; return; }
   try{
-    const r=await fetch('/api/productos'); const data=await r.json();
-    document.getElementById('productos').innerHTML=data.map(p=>`<div class="bg-white p-3 rounded-xl shadow"><div class="font-bold text-sm">${p.DES_ART||p.COD_ART}</div><div class="text-xs text-gray-500">${p.COD_ART}</div><div class="font-bold mt-2">$${p.PRECIO||0}</div><button onclick="addCarrito('${p.COD_ART}','${(p.DES_ART||'').replace(/'/g,'')}',${p.PRECIO||0})" class="mt-2 w-full bg-black text-white py-1 rounded text-sm">+ Agregar</button></div>`).join('');
-  }catch(e){
-    document.getElementById('productos').innerHTML=`<div class="bg-white p-3 rounded-xl shadow"><div class="font-bold">COCA 600ML</div><div class="text-xs">COCA600</div><div class="font-bold mt-2">$25</div><button onclick="addCarrito('COCA600','COCA 600ML',25)" class="mt-2 w-full bg-black text-white py-1 rounded text-sm">+ Agregar</button></div><div class="bg-white p-3 rounded-xl shadow"><div class="font-bold">SABRITAS 45G</div><div class="text-xs">SAB45</div><div class="font-bold mt-2">$18</div><button onclick="addCarrito('SAB45','SABRITAS 45G',18)" class="mt-2 w-full bg-black text-white py-1 rounded text-sm">+ Agregar</button></div>`;
-  }
+    const res=await fetch('/api/pedido-web',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}).then(r=>r.json());
+    if(res.ok){
+      const maps=`https://www.google.com/maps?q=${data.lat},${data.lng}`;
+      const msg=`*PEDIDO WEB #${res.folio} - ${cfg.NOMBRE_TIENDA}*%0AEmpresa:${res.empresa} Suc:${res.sucursal}%0ACliente:${res.cliente}%0ATel:${data.telefono}%0ADir:${data.direccion} ${data.colonia}%0ATotal:$${res.total}%0A%0A📍 GPS: ${maps}`;
+      alert(`✅ Pedido #${res.folio} creado!\nCliente: ${res.cliente}\nEmpresa: ${res.empresa} Suc: ${res.sucursal}`);
+      if(cfg.WHATSAPP_REPARTO) window.open(`https://wa.me/${cfg.WHATSAPP_REPARTO}?text=${msg}`,'_blank');
+      carrito=[]; render(); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false;
+    } else { alert('Error: '+res.error); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false; }
+  }catch(e){ alert('Error conexión: '+e.message); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false; }
 }
-function addCarrito(codigo,nombre,precio){ let ex=carrito.find(x=>x.codigo===codigo); if(ex) ex.cantidad++; else carrito.push({codigo,nombre,precio,cantidad:1}); renderCarrito(); }
-function renderCarrito(){
-  const lista=document.getElementById('carrito-lista'); const vacio=document.getElementById('carrito-vacio');
-  if(!carrito.length){ lista.innerHTML=''; vacio.style.display='block'; document.getElementById('carrito-total').classList.add('hidden'); document.getElementById('btn-pagar').disabled=true; document.getElementById('cart-count').innerText='0'; return; }
-  vacio.style.display='none'; totalCarrito=0;
-  lista.innerHTML=carrito.map((p,i)=>{ totalCarrito+=p.precio*p.cantidad; return `<div class="flex justify-between text-sm"><span>${p.nombre} x${p.cantidad}</span><span>$${p.precio*p.cantidad} <button onclick="carrito.splice(${i},1);renderCarrito()" class="text-red-500">x</button></span></div>`}).join('');
-  document.getElementById('total-txt').innerText=totalCarrito.toFixed(2); document.getElementById('carrito-total').classList.remove('hidden'); document.getElementById('btn-pagar').disabled=false; document.getElementById('cart-count').innerText=carrito.length;
-}
-async function pedirUbicacion(){
-  const s1=document.getElementById('ubicacion-status'); const s2=document.getElementById('modal-status');
-  if(s1) s1.innerText='📍 Solicitando permiso...'; if(s2) s2.innerText='📍 Solicitando permiso...';
-  return new Promise((resolve)=>{
-    if(!navigator.geolocation){ clienteUbicacion.permiso='no_soporte'; resolve(clienteUbicacion); return; }
-    navigator.geolocation.getCurrentPosition((pos)=>{
-      clienteUbicacion.lat=pos.coords.latitude; clienteUbicacion.lng=pos.coords.longitude; clienteUbicacion.permiso='si';
-      if(s1) s1.innerHTML=`✅ Ubicación: ${clienteUbicacion.lat.toFixed(5)}, ${clienteUbicacion.lng.toFixed(5)} <a target="_blank" href="https://www.google.com/maps?q=${clienteUbicacion.lat},${clienteUbicacion.lng}" class="text-blue-600 underline">Ver Maps</a>`;
-      if(s2) s2.innerText=`✅ ${clienteUbicacion.lat.toFixed(5)}, ${clienteUbicacion.lng.toFixed(5)}`;
-      setTimeout(cerrarModalUbi,1200); resolve(clienteUbicacion);
-    },()=>{ clienteUbicacion.permiso='denegado'; if(s1) s1.innerText='❌ Sin permiso, usaremos dirección escrita'; if(s2) s2.innerText='❌ Permiso denegado'; resolve(clienteUbicacion); },{enableHighAccuracy:true,timeout:10000});
-  });
-}
-function cerrarModalUbi(){ document.getElementById('modal-ubicacion').style.display='none'; }
-async function pagarConUbicacion(){
-  const nombre=document.getElementById('inp-nombre').value.trim(); const telefono=document.getElementById('inp-telefono').value.trim(); const direccion=document.getElementById('inp-direccion').value.trim(); const colonia=document.getElementById('inp-colonia').value.trim(); const referencia=document.getElementById('inp-referencia').value.trim();
-  if(!nombre||!telefono||!direccion){ alert('Faltan datos'); return; }
-  if(!clienteUbicacion.lat && clienteUbicacion.permiso==='pendiente'){ await pedirUbicacion(); }
-  document.getElementById('btn-pagar').innerText='ENVIANDO...'; document.getElementById('btn-pagar').disabled=true;
-  const res=await fetch('/api/pedido-web',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productos:carrito.map(c=>({codigo:c.codigo,cantidad:c.cantidad,precio:c.precio})),total:totalCarrito,nombre,telefono,direccion,colonia,referencia,lat:clienteUbicacion.lat,lng:clienteUbicacion.lng})});
-  const data=await res.json();
-  if(data.ok){ alert(`✅ Pedido #${data.folio} creado!\nCliente: ${data.cve_cte}\n${data.maps_url||''}`); carrito=[]; renderCarrito(); } else alert('Error:'+data.error);
-  document.getElementById('btn-pagar').innerText='PAGAR Y ENVIAR A SYSPTV'; document.getElementById('btn-pagar').disabled=false;
-}
-cargarProductos(); window.addEventListener('load',()=>{ setTimeout(()=>pedirUbicacion(),800); });
+init(); capturarGPS();
 </script>
-</body></html>
+</body>
+</html>
