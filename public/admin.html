@@ -1,0 +1,13 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Admin FarmaBara</title>
+<style>body{font-family:system-ui;background:#f8f7ff;margin:0}header{background:#6d28d9;color:#fff;padding:16px;display:flex;justify-content:space-between} .box{background:#fff;margin:16px;padding:16px;border-radius:12px} input{padding:10px;border:2px solid #e9e5ff;border-radius:8px} table{width:100%;border-collapse:collapse} td,th{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}</style>
+</head><body>
+<header><b>FarmaBara Admin</b><span style="font-size:12px">Sysptv2026</span></header>
+<div class="box" id="loginBox"><h3>Login Admin</h3><input id="pass" type="password" placeholder="Contraseña"/><button onclick="login()" style="padding:10px;background:#6d28d9;color:#fff;border:0;border-radius:8px">Entrar</button></div>
+<div class="box" id="panel" style="display:none">
+<h3>Productos</h3>
+<table><tr><th>SKU</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr><tr><td>AMCEF-1G</td><td>AMCEF 1G AMP</td><td>$33</td><td>50</td></tr><tr><td>TRIXONA-1GR</td><td>TRIXONA 1GR</td><td>$38</td><td>30</td></tr><tr><td>ANTIFLU-24</td><td>ANTIFLU DES CAPS 24</td><td>$142</td><td>12</td></tr></table>
+<h3 style="margin-top:20px">Clientes (desde SQL sysptv-sql2)</h3><div id="clientes">Cuando despliegues se verán aquí</div>
+<h3 style="margin-top:20px">Próximamente: Upload Excel de 2000+ SKUs</h3>
+</div>
+<script>function login(){if(document.getElementById('pass').value==='Sysptv2026'){document.getElementById('loginBox').style.display='none';document.getElementById('panel').style.display='block';}else alert('Contraseña incorrecta');}</script>
+</body></html>
