@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmaBara</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+<!-- HEADER con logo morado -->
+<header class="bg-white shadow-sm sticky top-0 z-50 rounded-b-[20px] mx-2 mt-2">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between">
+    <div class="flex gap-3">
+      <div class="w-12 h-12 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold">+</div>
+      <div>
+        <h1 class="text-2xl font-extrabold"><span>Farma</span><span class="text-violet-600">Bara</span></h1>
+        <p class="text-xs text-gray-500">Farmacia • Salud • Bienestar</p>
+      </div>
+    </div>
+    <div>🛒 <span class="bg-violet-600 text-white text-xs px-2 rounded-full">3</span></div>
+  </div>
+</header>
+
+<!-- BANNER -->
+<div class="max-w-7xl mx-auto px-4 mt-4 bg-violet-200 rounded-2xl p-4">
+  <h2 class="text-xl font-bold">Catálogo de productos destacados</h2>
+  <p class="text-sm">Entrega en 24h — Compra segura</p>
+</div>
+
+<!-- GRID 3 PRODUCTOS -->
+<div class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- Copia esta card para cada producto -->
+  <div class="bg-white rounded-[20px] shadow-lg p-4">
+    <img src="./public/antiflu.jpg" class="w-full h-48 object-contain">
+    <h3 class="font-bold mt-4">Antiflu-Des - $189 MXN</h3>
+    <button class="w-full mt-3 bg-violet-600 text-white py-3 rounded-full font-bold">🛒 Agregar</button>
+  </div>
+  <!-- Amcef -->
+  <div class="bg-white rounded-[20px] shadow-lg p-4">
+    <img src="./public/amcef.jpg" class="w-full h-48 object-contain">
+    <h3 class="font-bold mt-4">Amcef I.M. - $325 MXN</h3>
+    <button class="w-full mt-3 bg-violet-600 text-white py-3 rounded-full font-bold">🛒 Agregar</button>
+  </div>
+  <!-- Ensure -->
+  <div class="bg-white rounded-[20px] shadow-lg p-4">
+    <img src="./public/ensure.jpg" class="w-full h-48 object-contain">
+    <h3 class="font-bold mt-4">Ensure Fresa - $52 MXN</h3>
+    <button class="w-full mt-3 bg-violet-600 text-white py-3 rounded-full font-bold">🛒 Agregar</button>
+  </div>
+</div>
+</body>
+</html>
