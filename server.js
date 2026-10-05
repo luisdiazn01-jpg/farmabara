@@ -1,4 +1,3 @@
-// COPIA ESTO COMPLETO EN TU server.js
 const express = require('express');
 const sql = require('mssql');
 const cors = require('cors');
