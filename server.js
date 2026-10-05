@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 const sql = require('mssql');
 
 const app = express();
@@ -23,7 +22,6 @@ let pool;
 async function getPool(){
   if(pool?.connected) return pool;
   pool = await sql.connect(sqlConfig);
-  // Crear tabla de config si no existe
   await pool.request().query(`
     IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='CFG_TIENDA_WEB' AND xtype='U')
     CREATE TABLE dbo.CFG_TIENDA_WEB (
@@ -43,7 +41,6 @@ async function getPool(){
   return pool;
 }
 
-// CONFIG - para tu plantilla admin
 app.get('/api/config', async(req,res)=>{
   try{
     const p=await getPool();
@@ -57,32 +54,21 @@ app.post('/api/config', async(req,res)=>{
     const c=req.body;
     const p=await getPool();
     await p.request()
-   .input('suc', sql.SmallInt, c.ID_SUCURSAL||1)
-   .input('emp', sql.Char(10), c.ID_EMP||'01')
-   .input('tal', sql.Char(10), c.CVE_TAL||'01')
-   .input('alm', sql.Char(10), c.NUM_ALM||'01')
-   .input('ven', sql.Char(10), c.CVE_VEN||'01')
-   .input('tipo', sql.Char(10), c.TIPO_PED||'WEB')
-   .input('wa', sql.VarChar(20), c.WHATSAPP_REPARTO||'')
-   .input('nom', sql.VarChar(100), c.NOMBRE_TIENDA||'TIENDA WEB - SYSPTV')
-   .query(`UPDATE dbo.CFG_TIENDA_WEB SET ID_SUCURSAL=@suc, ID_EMP=@emp, CVE_TAL=@tal, NUM_ALM=@alm, CVE_VEN=@ven, TIPO_PED=@tipo, WHATSAPP_REPARTO=@wa, NOMBRE_TIENDA=@nom WHERE ID=1`);
+  .input('suc', sql.SmallInt, c.ID_SUCURSAL||1)
+  .input('emp', sql.Char(10), c.ID_EMP||'01')
+  .input('tal', sql.Char(10), c.CVE_TAL||'01')
+  .input('alm', sql.Char(10), c.NUM_ALM||'01')
+  .input('ven', sql.Char(10), c.CVE_VEN||'01')
+  .input('tipo', sql.Char(10), c.TIPO_PED||'WEB')
+  .input('wa', sql.VarChar(20), c.WHATSAPP_REPARTO||'')
+  .input('nom', sql.VarChar(100), c.NOMBRE_TIENDA||'TIENDA WEB - SYSPTV')
+  .query(`UPDATE dbo.CFG_TIENDA_WEB SET ID_SUCURSAL=@suc, ID_EMP=@emp, CVE_TAL=@tal, NUM_ALM=@alm, CVE_VEN=@ven, TIPO_PED=@tipo, WHATSAPP_REPARTO=@wa, NOMBRE_TIENDA=@nom WHERE ID=1`);
     res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
 
-app.get('/api/productos', async(req,res)=>{
-  try{
-    const p=await getPool();
-    const r=await p.request().query(`SELECT TOP 100 CVE_PRO as cve, DES_PRO as nombre, PRE_PRO as precio, ISNULL(CVE_PRO,'') as clave FROM dbo.C_PROD ORDER BY DES_PRO`);
-    res.json(r.recordset);
-  }catch(e){
-    // fallback si no existe C_PROD
-    res.json([{cve:'COCA600', nombre:'COCA 600ML', precio:25},{cve:'SAB45', nombre:'SABRITAS 45G', precio:18}]);
-  }
-});
-
 app.get('/api/test', async(req,res)=>{
-  try{ const p=await getPool(); res.json({ok:true, db:process.env.DB_NAME, user:process.env.DB_USER}); }catch(e){ res.status(500).json({ok:false, error:e.message}); }
+  try{ const p=await getPool(); res.json({ok:true, db:process.env.DB_NAME}); }catch(e){ res.status(500).json({ok:false, error:e.message}); }
 });
 
 async function guardarPedido(req,res){
@@ -97,48 +83,53 @@ async function guardarPedido(req,res){
     const direccion=(d.direccion||'').slice(0,200);
 
     await p.request()
-   .input('cve', sql.VarChar(20), tel)
-   .input('des', sql.VarChar(100), nombre)
-   .input('dir', sql.VarChar(200), direccion)
-   .input('tel', sql.VarChar(30), (d.telefono||'').slice(0,30))
-   .input('col', sql.VarChar(100), (d.colonia||'').slice(0,100))
-   .input('ciu', sql.VarChar(100), (d.ciudad||'CHICOLOAPAN').slice(0,100))
-   .query(`IF NOT EXISTS(SELECT 1 FROM dbo.C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO dbo.C_CLIENTE (CVE_CTE,DES_CTE,DIR_CTE,TEL_CTE,COLONIA,CIUDAD,TIPO_CTE,FEC_ALTA) VALUES (@cve,@des,@dir,@tel,@col,@ciu,'WEB',GETDATE()) ELSE UPDATE dbo.C_CLIENTE SET DES_CTE=@des, DIR_CTE=@dir WHERE CVE_CTE=@cve`);
+  .input('cve', sql.VarChar(20), tel)
+  .input('des', sql.VarChar(100), nombre)
+  .input('dir', sql.VarChar(200), direccion)
+  .input('tel', sql.VarChar(30), (d.telefono||'').slice(0,30))
+  .query(`IF NOT EXISTS(SELECT 1 FROM dbo.C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO dbo.C_CLIENTE (CVE_CTE,DES_CTE,DIR_CTE,TEL_CTE,TIPO_CTE,FEC_ALTA) VALUES (@cve,@des,@dir,@tel,'WEB',GETDATE())`);
 
-    const fr=await p.request().query(`SELECT ISNULL(MAX(NUM_PED),0)+1 as folio FROM dbo.TH_PEDIDO WHERE ID_SUCURSAL=${cfg.ID_SUCURSAL} AND ID_EMP='${cfg.ID_EMP}' AND TIPO_PED='${cfg.TIPO_PED}'`);
+    // PLANTILLA: último pedido que SÍ abre en SYSPTV
+    const plantQ = await p.request().query(`SELECT TOP 1 * FROM dbo.TH_PEDIDO WHERE ID_SUCURSAL=${cfg.ID_SUCURSAL} AND ID_EMP='${cfg.ID_EMP.trim()}' ORDER BY NUM_PED DESC`);
+    if(!plantQ.recordset[0]) throw new Error('Haz primero un pedido manual en SYSPTV para usarlo de plantilla');
+    const tpl = plantQ.recordset[0];
+
+    const fr=await p.request().query(`SELECT ISNULL(MAX(NUM_PED),0)+1 as folio FROM dbo.TH_PEDIDO WHERE ID_SUCURSAL=${cfg.ID_SUCURSAL} AND ID_EMP='${cfg.ID_EMP.trim()}' AND TIPO_PED='${cfg.TIPO_PED.trim()}'`);
     const folio=fr.recordset[0].folio;
+    const tot = parseFloat(d.total||0);
 
+    // CLONAMOS TODO para no dejar NULLs que provocan el error de ','
     await p.request()
-   .input('suc', sql.SmallInt, cfg.ID_SUCURSAL)
-   .input('emp', sql.Char(10), cfg.ID_EMP.trim())
-   .input('tal', sql.Char(10), cfg.CVE_TAL.trim())
-   .input('alm', sql.Char(10), cfg.NUM_ALM.trim())
-   .input('ven', sql.Char(10), cfg.CVE_VEN.trim())
-   .input('folio', sql.BigInt, folio)
-   .input('cve', sql.VarChar(20), tel)
-   .input('obs', sql.VarChar(100), `${nombre} ${direccion}`.slice(0,100))
-   .input('tot', sql.Decimal(18,2), parseFloat(d.total||0))
-   .query(`
-      INSERT INTO dbo.TH_PEDIDO (ID_SUCURSAL,ID_EMP,TIPO_PED,NUM_PED,FEC_PED,CVE_CTE,CVE_TAL,CVE_CTE_CONS,CVE_VEN,CVE_TIP_MDA,CVE_ATN,STA_PED,SUB_TOT,IVA_TOT,OBS_PED,NUM_ALM,FEC_ENT,IVA,DESC_CTE,DESC_FIN,ENV_A)
-      VALUES (@suc,@emp,'${cfg.TIPO_PED}',@folio,GETDATE(),@cve,@tal,@cve,@ven,'01','01','P',@tot,0,@obs,@alm,DATEADD(day,1,GETDATE()),0,0,0,'A')
+  .input('suc', sql.SmallInt, cfg.ID_SUCURSAL)
+  .input('emp', sql.Char(10), cfg.ID_EMP.trim())
+  .input('tipo', sql.Char(10), cfg.TIPO_PED.trim())
+  .input('folio', sql.BigInt, folio)
+  .input('cve', sql.VarChar(20), tel)
+  .input('tot', sql.Decimal(18,2), tot)
+  .input('sub', sql.Decimal(18,2), tot)
+  .input('obs', sql.VarChar(100), `${nombre} ${direccion}`.slice(0,100).replace(/'/g,''))
+  .input('cons', sql.VarChar(20), tel)
+  .query(`
+      INSERT INTO dbo.TH_PEDIDO (ID_SUCURSAL, ID_EMP, TIPO_PED, NUM_PED, FEC_PED, CVE_CTE, CVE_TAL, ENV_A, CVE_CTE_CONS, CVE_VEN, CVE_TIP_MDA, CVE_ATN, STA_PED, SUB_TOT, IVA_TOT, TOT_PED, OBS_PED, NUM_ALM, FEC_ENT, IVA, DESC_CTE, DESC_FIN, TOT_COS, TIP_CAM, CVE_USU, FEC_MOD)
+      SELECT @suc, @emp, @tipo, @folio, GETDATE(), @cve, CVE_TAL, ENV_A, @cons, CVE_VEN, CVE_TIP_MDA, CVE_ATN, 'P', @sub, 0, @tot, @obs, NUM_ALM, DATEADD(day,1,GETDATE()), 0, 0, 0, 0, TIP_CAM, CVE_USU, GETDATE()
+      FROM dbo.TH_PEDIDO WHERE ID_SUCURSAL=@suc AND ID_EMP=@emp AND NUM_PED=${tpl.NUM_PED}
     `);
 
     if(d.productos){
       let par=1;
       for(const prod of d.productos){
         await p.request()
-       .input('suc', sql.SmallInt, cfg.ID_SUCURSAL)
-       .input('emp', sql.Char(10), cfg.ID_EMP.trim())
-       .input('folio', sql.BigInt, folio)
-       .input('par', sql.Int, par++)
-       .input('cve', sql.Char(20), (prod.cve||'ART').toString().slice(0,20))
-       .input('can', sql.Decimal(18,3), parseFloat(prod.cantidad||1))
-       .input('pre', sql.Decimal(18,2), parseFloat(prod.precio||0))
-       .query(`INSERT INTO dbo.TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,NUM_PAR,CVE_PRO,CAN_PRO,PRE_PRO,CAN_AUT) VALUES (@suc,@emp,@folio,@par,@cve,@can,@pre,@can)`);
+      .input('suc', sql.SmallInt, cfg.ID_SUCURSAL)
+      .input('emp', sql.Char(10), cfg.ID_EMP.trim())
+      .input('folio', sql.BigInt, folio)
+      .input('par', sql.Int, par++)
+      .input('cve', sql.Char(20), (prod.cve||'ART').toString().slice(0,20))
+      .input('can', sql.Decimal(18,3), parseFloat(prod.cantidad||1))
+      .input('pre', sql.Decimal(18,2), parseFloat(prod.precio||0))
+      .query(`INSERT INTO dbo.TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,NUM_PAR,CVE_PRO,CAN_PRO,PRE_PRO,CAN_AUT,PRE_COS,STA_PAR,IVA_PRO) VALUES (@suc,@emp,@folio,@par,@cve,@can,@pre,@can,@pre*0.7,'P',0)`);
       }
     }
-
-    res.json({ok:true, folio, cliente:nombre, total:d.total, wa:cfg.WHATSAPP_REPARTO, sucursal:cfg.ID_SUCURSAL, empresa:cfg.ID_EMP});
+    res.json({ok:true, folio, cliente:nombre, total:tot, wa:cfg.WHATSAPP_REPARTO});
   }catch(e){
     console.error(e);
     res.status(500).json({ok:false, error:e.message, detalle:e.originalError?.message});
@@ -152,4 +143,4 @@ app.post('/api/pedido', guardarPedido);
 app.get('*', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT=process.env.PORT||3000;
-app.listen(PORT,()=>console.log('SYSPTV TIENDA WEB corriendo puerto '+PORT));
+app.listen(PORT,()=>console.log('SYSPTV TIENDA WEB FIX corriendo '+PORT));
