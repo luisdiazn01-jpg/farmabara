@@ -1,61 +1,22 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Admin FarmaBara - tiendaMaster</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-[#F8F7FF] min-h-screen">
-<header class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-20">
-  <div class="flex items-center gap-2">
-    <div class="w-8 h-8 bg-[#6D28D9] rounded-lg flex items-center justify-center text-white">💊</div>
-    <span class="font-extrabold">Farma<span class="text-[#6D28D9]">Bara</span> Admin</span>
-    <span class="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full ml-2">Conectado a tiendaMaster</span>
-  </div>
-  <a href="/" class="text-sm bg-black text-white px-4 py-2 rounded-full">Ver Tienda</a>
-</header>
-
-<div class="max-w-7xl mx-auto p-4 grid lg:grid-cols-3 gap-6 mt-4">
-  <!-- COL IZQ -->
-  <div class="lg:col-span-1 space-y-6">
-    <div class="bg-white rounded-2xl p-5 shadow-sm border">
-      <h3 class="font-bold mb-4"><i class="fa-solid fa-box mr-2 text-[#6D28D9]"></i>Subir Producto + Foto</h3>
-      <form id="formProducto" class="space-y-3">
-        <input id="nombre" placeholder="Nombre ej: Paracetamol 500mg 20 tabletas" required class="w-full border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#6D28D9] focus:outline-none">
-        <input id="codigo" placeholder="Código barras SYSPTV (debe existir en Productos)" required class="w-full border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#6D28D9] focus:outline-none">
-        <div class="grid grid-cols-2 gap-2">
-          <input id="precio" type="number" step="0.01" placeholder="Precio venta" required class="border rounded-xl px-3 py-3 text-sm">
-          <input id="precioAntes" type="number" step="0.01" placeholder="Precio antes" class="border rounded-xl px-3 py-3 text-sm">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <select id="categoria" class="border rounded-xl px-3 py-3 text-sm"><option>Dolor</option><option>Antibiótico</option><option>Gripe</option><option>Infantil</option><option>Vitaminas</option></select>
-          <input id="descuento" placeholder="-25%" value="-25%" class="border rounded-xl px-3 py-3 text-sm">
-        </div>
-        <div class="border-2 border-dashed rounded-xl p-3">
-          <p class="text-[11px] text-gray-500 mb-1">Foto del producto (se guarda en /uploads)</p>
-          <input type="file" id="imagenFile" accept="image/*" class="w-full text-sm">
-          <p class="text-[10px] text-gray-400 mt-2">O pega URL externa (imgbb.com)</p>
-          <input id="imagenUrl" placeholder="https://i.ibb.co/..." class="w-full border rounded-xl px-3 py-2 text-xs mt-1">
-        </div>
-        <input id="stock" type="number" placeholder="Stock 100" value="100" class="w-full border rounded-xl px-4 py-3 text-sm">
-        <button type="submit" class="w-full bg-[#6D28D9] text-white font-bold py-3 rounded-full hover:bg-[#5B21B6]">Guardar en ProductosWeb</button>
-      </form>
-      <pre id="logProd" class="mt-3 text-[11px] bg-black text-green-400 p-3 rounded-xl overflow-auto max-h-[120px]"></pre>
-    </div>
-
-    <div class="bg-white rounded-2xl p-5 shadow-sm border">
-      <h3 class="font-bold mb-2">🧪 Pedidos de Prueba</h3>
-      <p class="text-[11px] text-gray-500 mb-3">Crea un pedido directo en TH_PEDIDO / TD_PEDIDO como lo probamos en tu foto.</p>
-      <button onclick="pedidoPrueba()" class="w-full bg-black text-white font-bold py-3 rounded-full">Lanzar Pedido Prueba #FarmaBara</button>
-      <pre id="logPedido" class="mt-3 text-xs bg-gray-900 text-white p-3 rounded-xl overflow-auto"></pre>
-    </div>
-  </div>
-
-  <!-- COL DER -->
-  <div class="lg:col-span-2 space-y-6">
-    <div class="bg-white rounded-2xl p-5 shadow-sm border">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-bold">📦 Últimos Pedidos Web → SYSPTV</h3>
-        <button onclick="cargarPedidos()" class="text-xs bg-gray-
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script src="https://cdn.tailwindcss.com"></script><title>Admin SYSPTV</title></head>
+<body class="bg-gray-100 p-6"><div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
+<h1 class="font-bold text-xl mb-4">⚙️ Configuración SYSPTV - Empresa y Sucursal</h1>
+<div class="grid grid-cols-2 gap-3">
+<input id="ID_SUCURSAL" placeholder="ID_SUCURSAL (1)" class="border p-2 rounded">
+<input id="ID_EMP" placeholder="ID_EMP (01)" class="border p-2 rounded">
+<input id="CVE_TAL" placeholder="CVE_TAL (01)" class="border p-2 rounded">
+<input id="NUM_ALM" placeholder="NUM_ALM (01)" class="border p-2 rounded">
+<input id="CVE_VEN" placeholder="CVE_VEN (01)" class="border p-2 rounded">
+<input id="TIPO_PED" placeholder="TIPO_PED (WEB)" class="border p-2 rounded">
+</div>
+<input id="NOMBRE_TIENDA" placeholder="Nombre Tienda" class="border p-2 rounded w-full mt-3">
+<input id="WHATSAPP_REPARTO" placeholder="WhatsApp Reparto (ej 525512345678)" class="border p-2 rounded w-full mt-3">
+<button onclick="guardar()" class="bg-black text-white w-full p-3 rounded mt-4">Guardar Configuración</button>
+<div id="msg" class="mt-3 text-sm"></div>
+<a href="/" class="text-blue-600 text-sm mt-4 block">← Volver a Tienda</a>
+</div>
+<script>
+async function load(){ const c=await fetch('/api/config').then(r=>r.json()); for(let k in c){ if(document.getElementById(k)) document.getElementById(k).value=c[k]; } }
+async function guardar(){ const data={}; ['ID_SUCURSAL','ID_EMP','CVE_TAL','NUM_ALM','CVE_VEN','TIPO_PED','WHATSAPP_REPARTO','NOMBRE_TIENDA'].forEach(id=> data[id]=document.getElementById(id).value); const r=await fetch('/api/config',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}).then(r=>r.json()); document.getElementById('msg').innerText=r.ok?'✅ Guardado! Ya tus pedidos se ligarán a Empresa '+data.ID_EMP+' Suc '+data.ID_SUCURSAL:'Error: '+r.error; }
+load();
+</script></body></html>
