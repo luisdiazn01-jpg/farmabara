@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const sql = require('mssql');
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
@@ -19,58 +18,31 @@ const sqlConfig = {
 };
 
 let pool=null;
-async function getPool(){
-  if(pool?.connected) return pool;
-  pool = await sql.connect(sqlConfig);
-  return pool;
-}
-
-app.get('/api/health', (req,res)=> res.json({ok:true}));
+async function getPool(){ if(pool?.connected) return pool; pool = await sql.connect(sqlConfig); return pool; }
 
 app.get('/api/debug-crart', async(req,res)=>{
   try{
     const p=await getPool();
+    const db = await p.request().query(`SELECT DB_NAME() as db_actual`);
     const total = await p.request().query(`SELECT COUNT(*) as total FROM dbo.CRART`);
-    const top = await p.request().query(`SELECT TOP 5 CVE_PRO, DES_PRO, ESTATUS, PRE_VTA1, PRE_PRO FROM dbo.CRART`);
+    const totalAlta = await p.request().query(`SELECT COUNT(*) as total FROM dbo.CRART WHERE ESTATUS='ALTA'`);
+    const top = await p.request().query(`SELECT TOP 5 CVE_PRO, DES_PRO, ESTATUS, PRE_VTA1 FROM dbo.CRART ORDER BY CVE_PRO`);
     const dist = await p.request().query(`SELECT DISTINCT TOP 20 ESTATUS FROM dbo.CRART`);
-    const cols = await p.request().query(`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='CRART'`);
-    res.json({total: total.recordset[0], ejemplos: top.recordset, distintos: dist.recordset, columnas: cols.recordset});
-  }catch(e){ res.json({error:e.message}); }
+    res.json({db_conectada: db.recordset[0], total_crart: total.recordset[0], total_alta: totalAlta.recordset[0], ejemplos: top.recordset, estatus_distintos: dist.recordset});
+  }catch(e){ res.json({error:e.message, detalle:e.originalError?.message}); }
 });
 
 app.get('/api/productos', async(req,res)=>{
   try{
     const p=await getPool();
-    // 1. Contar primero
-    const c = await p.request().query(`SELECT COUNT(*) as total FROM dbo.CRART`);
-    console.log('TOTAL CRART:', c.recordset[0].total);
-
-    if(c.recordset[0].total==0) return res.json([]);
-
-    // 2. Intentar con ESTATUS=ALTA como me dijiste
-    let r;
-    try{
-      r = await p.request().query(`SELECT TOP 500 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, ISNULL(PRE_PRO,0)) as precio FROM dbo.CRART WHERE ESTATUS='ALTA' ORDER BY DES_PRO`);
-    }catch(e){ console.log('No existe ESTATUS:', e.message); r={recordset:[]}; }
-
-    console.log('Con ALTA:', r.recordset.length);
-
-    // 3. Si no hay con ALTA, trae TODO sin filtro
-    if(r.recordset.length==0){
-      r = await p.request().query(`SELECT TOP 500 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, ISNULL(PRE_PRO,0)) as precio FROM dbo.CRART ORDER BY DES_PRO`);
-      console.log('Sin filtro:', r.recordset.length);
-    }
+    const r = await p.request().query(`SELECT TOP 500 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, ISNULL(PRE_PRO,0)) as precio FROM dbo.CRART ORDER BY DES_PRO`);
+    console.log('Productos sin filtro:', r.recordset.length);
     res.json(r.recordset);
-  }catch(e){
-    console.error(e);
-    res.json([]);
-  }
+  }catch(e){ console.error(e); res.json([]); }
 });
 
 app.get('/api/config', async(req,res)=>{ try{ const p=await getPool(); const r=await p.request().query(`SELECT * FROM dbo.CFG_TIENDA_WEB`); res.json(r.recordset[0]); }catch(e){ res.json({}); }});
 app.post('/api/config', async(req,res)=>{ try{ const c=req.body; const p=await getPool(); await p.request().input('suc', sql.SmallInt, c.ID_SUCURSAL||1).input('emp', sql.Char(10), c.ID_EMP||'01').input('tal', sql.Char(10), c.CVE_TAL||'01').input('alm', sql.Char(10), c.NUM_ALM||'01').input('ven', sql.Char(10), c.CVE_VEN||'01').input('tipo', sql.Char(10), c.TIPO_PED||'WEB').input('wa', sql.VarChar(20), c.WHATSAPP_REPARTO||'').input('nom', sql.VarChar(100), c.NOMBRE_TIENDA||'').query(`UPDATE dbo.CFG_TIENDA_WEB SET ID_SUCURSAL=@suc, ID_EMP=@emp, CVE_TAL=@tal, NUM_ALM=@alm, CVE_VEN=@ven, TIPO_PED=@tipo, WHATSAPP_REPARTO=@wa, NOMBRE_TIENDA=@nom WHERE ID=1`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}); }});
-
-app.get('/api/test', async(req,res)=>{ try{ const p=await getPool(); res.json({ok:true}); }catch(e){ res.status(500).json({ok:false}); }});
 
 async function guardarPedido(req,res){
   const d=req.body;
@@ -91,6 +63,4 @@ app.post('/api/pedidos', guardarPedido);
 app.post('/api/pedido-web', guardarPedido);
 app.post('/api/pedido', guardarPedido);
 app.get('*', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.listen(process.env.PORT||3000, ()=>console.log('V4 corriendo'));
-process.on('uncaughtException', e=>console.error(e.message));
-process.on('unhandledRejection', e=>console.error(e.message));
+app.listen(process.env.PORT||3000, ()=>console.log('V5 DIAG corriendo'));
