@@ -45,13 +45,13 @@ app.get('/api/productos', async(req,res)=>{
     let query = '';
     if(tablas.includes('CRART')){
       // CRART SYSPTV tiene CVE_PRO, DES_PRO, PRE_VTA1
-      query = `SELECT TOP 200 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, ISNULL(PRE_PRO,0)) as precio, ISNULL(EXI_PRO,0) as existencia FROM dbo.CRART WHERE ISNULL(STA_PRO,'A')='A' ORDER BY DES_PRO`;
+      query = 'SELECT TOP 200 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, ISNULL(PRE_PRO,0)) as precio, ISNULL(EXI_PRO,0) as existencia FROM dbo.CRART WHERE ISNULL(STA_PRO,'A')='A' ORDER BY DES_PRO';
     } else if(tablas.includes('C_RART')){
-      query = `SELECT TOP 200 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, PRE_PRO) as precio FROM dbo.C_RART WHERE STA_PRO='A' ORDER BY DES_PRO`;
+      query = 'SELECT TOP 200 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, PRE_PRO) as precio FROM dbo.C_RART WHERE STA_PRO='A' ORDER BY DES_PRO';
     } else if(tablas.includes('C_ART')){
-      query = `SELECT TOP 200 RTRIM(CVE_ART) as cve, RTRIM(DES_ART) as nombre, ISNULL(PRE_VTA,0) as precio FROM dbo.C_ART ORDER BY DES_ART`;
+      query = 'SELECT TOP 200 RTRIM(CVE_ART) as cve, RTRIM(DES_ART) as nombre, ISNULL(PRE_VTA,0) as precio FROM dbo.C_ART ORDER BY DES_ART';
     } else {
-      query = `SELECT TOP 200 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, PRE_PRO as precio FROM dbo.C_PROD ORDER BY DES_PRO`;
+    query = 'SELECT TOP 200 RTRIM(CVE_PRO) as cve, RTRIM(DES_PRO) as nombre, ISNULL(PRE_VTA1, ISNULL(PRE_PRO,0)) as precio, ISNULL(EXI_PRO,0) as existencia FROM dbo.CRART WHERE RTRIM(LTRIM(ESTATUS))='ALTA' ORDER BY DES_PRO';
     }
 
     const r=await p.request().query(query);
@@ -68,7 +68,7 @@ async function guardarPedido(req,res){
   const d=req.body;
   try{
     const p=await getPool();
-    const cfgQ=await p.request().query(`SELECT * FROM dbo.CFG_TIENDA_WEB WHERE ID=1`);
+    const cfgQ=await p.request().query('SELECT * FROM dbo.CFG_TIENDA_WEB WHERE ID=1');
     const cfg=cfgQ.recordset[0];
     const tel=(d.telefono||'').toString().replace(/\D/g,'').slice(-10) || 'W'+Date.now().toString().slice(-8);
     const nombre=(d.nombre||'CLIENTE WEB').slice(0,100);
