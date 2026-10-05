@@ -1,0 +1,72 @@
+[
+  {
+    "sku": "7501349012004",
+    "nombre": "AMCEF 1G AMP 3.5ML",
+    "precio_base": 44.55,
+    "precio": 55.69,
+    "precio_tachado": 69.61,
+    "categoria": "ANTIBIOTICO",
+    "imagen": "img/7501349012004.jpg",
+    "stock": 50
+  },
+  {
+    "sku": "7502208891228",
+    "nombre": "TRIXONA 1GR SOL INY 3.5ML",
+    "precio_base": 51.3,
+    "precio": 64.12,
+    "precio_tachado": 80.15,
+    "categoria": "ANTIBIOTICO",
+    "imagen": "img/7502208891228.jpg",
+    "stock": 50
+  },
+  {
+    "sku": "7501088509773",
+    "nombre": "ANTIFLU - DES CAPS 24",
+    "precio_base": 156.2,
+    "precio": 189.00,
+    "precio_tachado": 236.00,
+    "categoria": "ANTIGRIPAL",
+    "imagen": "img/7501088509773.jpg",
+    "stock": 50
+  },
+  {
+    "sku": "7501349027329",
+    "nombre": "DEXAMETASONA SOL INY 8MG/2ML",
+    "precio_base": 20.92,
+    "precio": 32.00,
+    "precio_tachado": 40.00,
+    "categoria": "ANTIINFLAMATORIO",
+    "imagen": "img/7501349027329.jpg",
+    "stock": 50
+  },
+  {
+    "sku": "7501033954078",
+    "nombre": "ENSURE LIQ FRESA PLAST 237 ML",
+    "precio_base": 50.4,
+    "precio": 52.00,
+    "precio_tachado": 61.00,
+    "categoria": "SUPLEMENTO",
+    "imagen": "img/7501033954078.jpg",
+    "stock": 50
+  },
+  {
+    "sku": "7501033954061",
+    "nombre": "ENSURE LIQ CHOCOLATE 237ML",
+    "precio_base": 50.4,
+    "precio": 52.00,
+    "precio_tachado": 61.00,
+    "categoria": "SUPLEMENTO",
+    "imagen": "img/7501033954061.jpg",
+    "stock": 50
+  },
+  {
+    "sku": "7501033954085",
+    "nombre": "ENSURE LIQ VAINILLA 237ML",
+    "precio_base": 50.4,
+    "precio": 52.00,
+    "precio_tachado": 61.00,
+    "categoria": "SUPLEMENTO",
+    "imagen": "img/7501033954085.jpg",
+    "stock": 50
+  }
+]
