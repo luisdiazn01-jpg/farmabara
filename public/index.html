@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>FarmaBara - Chicoloapan</title>
+<style>
+:root{--m:#6d28d9;--v:#25D366;--bg:#f8f7ff}body{margin:0;font-family:system-ui;background:var(--bg)}
+header{background:#6d28d9;color:#fff;padding:14px 18px;position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;z-index:10}
+.btn{padding:8px 14px;border-radius:10px;border:0;font-weight:700;cursor:pointer}
+.btn-m{background:#fff;color:#6d28d9} .btn-v{background:#25D366;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:16px}
+.card{background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);display:flex;flex-direction:column}
+.card .sku{font-size:10px;color:#888} .card .name{font-weight:700;font-size:13px;min-height:36px;margin:4px 0}
+.card .price{color:#6d28d9;font-weight:800;font-size:18px}
+.card button{margin-top:10px;background:#6d28d9;color:#fff;border:0;padding:10px;border-radius:10px;width:100%;font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;place-items:center;z-index:20}
+.modal .box{background:#fff;padding:20px;border-radius:16px;width:90%;max-width:360px}
+input{width:100%;padding:12px;margin:6px 0;border:2px solid #e9e5ff;border-radius:10px;box-sizing:border-box}
+.cart{position:fixed;bottom:16px;right:16px;background:#111;color:#fff;padding:12px 16px;border-radius:20px;display:none;gap:10px;align-items:center}
+</style></head><body>
+<header><div><b>FarmaBara</b><div style="font-size:11px">Chicoloapan • 2h entrega</div></div><div><button class="btn btn-m" onclick="openLogin()">Ingresar</button><div id="userPhone" style="font-size:11px"></div></div></header>
+<div style="padding:12px"><input id="q" placeholder="Buscar: AMCEF, TRIXONA..." oninput="filtrar()"/></div>
+<div class="grid" id="grid"></div>
+<div class="cart" id="cartBar"><span id="cartText"></span><button class="btn btn-v" onclick="pedir()">Pedir WhatsApp 5534244092</button></div>
+
+<div class="modal" id="loginModal"><div class="box">
+<h3 style="margin:0">Ingresa con WhatsApp</h3><p style="font-size:12px;color:#666">MODO PRUEBA: el código se verá aquí abajo</p>
+<div id="step1"><input id="tel" placeholder="Tu celular Ej: 5534244092"/><input id="nom" placeholder="Tu nombre"/><input id="dir" placeholder="Tu dirección Chicoloapan"/><button class="btn" style="background:#6d28d9;color:#fff;width:100%" onclick="solicitarCodigo()">Enviar código</button></div>
+<div id="step2" style="display:none"><div id="otpDemo" style="background:#f3f0ff;padding:12px;border-radius:10px;font-weight:800;text-align:center;font-size:22px;letter-spacing:4px;margin:8px 0"></div><input id="otpInput" placeholder="Código 6 dígitos"/><button class="btn" style="background:#6d28d9;color:#fff;width:100%" onclick="verificarCodigo()">Verificar</button></div>
+<button class="btn" style="width:100%;margin-top:10px;background:#eee" onclick="closeLogin()">Cerrar</button>
+</div></div>
+
+<script>
+const productos=[{sku:"AMCEF-1G",name:"AMCEF 1G AMP",price:33},{sku:"TRIXONA-1GR",name:"TRIXONA 1GR",price:38},{sku:"ANTIFLU-24",name:"ANTIFLU DES CAPS 24",price:142},{sku:"PARACET-500",name:"PARACETAMOL 500MG 20 TABS",price:28},{sku:"IBU-400",name:"IBUPROFENO 400MG 20 CAPS",price:35},{sku:"LORATADINA-10",name:"LORATADINA 10MG",price:45},{sku:"AMBROXOL-120",name:"AMBROXOL JARABE 120ML",price:52},{sku:"OMEPRAZOL-20",name:"OMEPRAZOL 20MG 14 CAPS",price:68}];
+let carrito=[], cliente=null;
+function render(lista){const g=document.getElementById('grid');g.innerHTML='';lista.forEach(p=>{const d=document.createElement('div');d.className='card';d.innerHTML='<div class=sku>'+p.sku+'</div><div class=name>'+p.name+'</div><div class=price>$'+p.price+'</div><button onclick="add(\''+p.sku+'\')">+ Agregar</button>';g.appendChild(d);})}
+function filtrar(){const q=document.getElementById('q').value.toLowerCase();render(productos.filter(p=>p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)))}
+function add(sku){const p=productos.find(x=>x.sku===sku);carrito.push(p);const total=carrito.reduce((a,b)=>a+b.price,0);document.getElementById('cartText').innerText=carrito.length+' prod • $'+total;document.getElementById('cartBar').style.display='flex';}
+function openLogin(){document.getElementById('loginModal').style.display='grid'}function closeLogin(){document.getElementById('loginModal').style.display='none'}
+async function solicitarCodigo(){const telefono=document.getElementById('tel').value;const r=await fetch('/api/login-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono})});const d=await r.json();document.getElementById('otpDemo').innerText=d.otp+' (COPIA ESTE CODIGO)';document.getElementById('step1').style.display='none';document.getElementById('step2').style.display='block';}
+async function verificarCodigo(){const telefono=document.getElementById('tel').value;const otp=document.getElementById('otpInput').value;const nombre=document.getElementById('nom').value;const direccion=document.getElementById('dir').value;const r=await fetch('/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono,otp,nombre,direccion})});const d=await r.json();if(d.ok){cliente=d.cliente;document.getElementById('userPhone').innerText='Hola '+(cliente.nombre||telefono);closeLogin();alert('¡Listo! Ya estás logueado');}else alert(d.error);}
+function pedir(){const total=carrito.reduce((a,b)=>a+b.price,0);let msg='Hola FarmaBara! Soy '+(cliente?cliente.telefono:'cliente')+'%0AQuiero:%0A';carrito.forEach(p=>{msg+='- '+p.name+' $'+p.price+'%0A';});msg+='%0ATotal $'+total;window.open('https://wa.me/525534244092?text='+msg,'_blank');}
+render(productos);
+</script></body></html>
