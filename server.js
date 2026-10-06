@@ -77,33 +77,44 @@ async function guardarPedido(req,res){
     const EMP=String(cfg.ID_EMP).trim()||'17072026';
 
     const tel=(d.telefono||'').toString().replace(/\D/g,'').slice(-10) || 'W'+Date.now().toString().slice(-8);
-    const nombre=(d.nombre||'CLIENTE WEB').slice(0,100);
+    const nombre=(d.nombre||'CLIENTE WEB').replace(/'/g,"").slice(0,100);
     await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre)
 .query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE) VALUES (@cve,@des)`);
 
     const fr=await p.request().query(`SELECT ISNULL(MAX(NUM_PED),0)+1 as folio FROM TH_PEDIDO WHERE ID_SUCURSAL=${SUC} AND ID_EMP='${EMP}'`);
     const folio=fr.recordset[0].folio;
     const tot=parseFloat(d.total||0);
+    const sub=tot/1.16;
+    const iva=tot-sub;
 
+    // FIX: Ahora llenamos IVA, CVE_TIP_MDA, VAL_TIP_MDA que SysPtv necesita, si no arma,, y truena
     await p.request()
-.input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP)
-.input('folio', sql.Int, folio).input('cte', sql.VarChar(20), tel)
-.input('fec', sql.DateTime, new Date()).input('fec2', sql.DateTime, new Date(Date.now()+86400000))
-.input('ven', sql.VarChar(10), '01').input('sub', sql.Decimal(18,2), tot/1.16)
-.input('iva', sql.Decimal(18,2), tot - tot/1.16)
-.query(`INSERT INTO TH_PEDIDO (ID_SUCURSAL, ID_EMP, NUM_PED, CVE_CTE, FEC_PED, FEC_ENT, CVE_VEN, SUB_TOT, IVA_TOT, TIPO_PED, STA_PED) VALUES (@suc,@emp,@folio,@cte,@fec,@fec2,@ven,@sub,@iva,'WEB','P')`);
+.input('suc', sql.SmallInt, SUC)
+.input('emp', sql.VarChar(20), EMP)
+.input('folio', sql.Int, folio)
+.input('cte', sql.VarChar(20), tel)
+.input('fec', sql.DateTime, new Date())
+.input('fec2', sql.DateTime, new Date(Date.now()+86400000))
+.input('ven', sql.VarChar(10), '01')
+.input('ivaPorc', sql.Decimal(18,2), 16)
+.input('tipMda', sql.VarChar(10), '01')
+.input('valMda', sql.Decimal(18,2), 1)
+.input('sub', sql.Decimal(18,2), sub)
+.input('ivaTot', sql.Decimal(18,2), iva)
+.query(`INSERT INTO TH_PEDIDO (ID_SUCURSAL, ID_EMP, NUM_PED, CVE_CTE, FEC_PED, FEC_ENT, IVA, CVE_VEN, CVE_TIP_MDA, VAL_TIP_MDA, SUB_TOT, IVA_TOT, TIPO_PED, STA_PED) VALUES (@suc,@emp,@folio,@cte,@fec,@fec2,@ivaPorc,@ven,@tipMda,@valMda,@sub,@ivaTot,'WEB','P')`);
 
     let par=1;
     for(const prod of d.productos||[]){
-      const cveLimpio=(prod.cve||'').toString().replace(/\s+/g,'').trim().substring(0,20);
+      let cveLimpio=(prod.cve||'').toString().replace(/'/g,'').replace(/\s+/g,'').replace(/[^a-zA-Z0-9_-]/g,'').trim().substring(0,20);
+      if(!cveLimpio) continue;
       const cant=parseFloat(prod.cantidad||1);
       const prec=parseFloat(prod.precio||0);
       await p.request()
-  .input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP)
-  .input('ped', sql.Int, folio).input('can', sql.Decimal(18,3), cant)
-  .input('cve', sql.VarChar(20), cveLimpio).input('pre', sql.Decimal(18,2), prec)
-  .input('par', sql.Int, par).input('aut', sql.Decimal(18,3), cant).input('preL', sql.Decimal(18,2), prec)
-  .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`);
+.input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP)
+.input('ped', sql.Int, folio).input('can', sql.Decimal(18,3), cant)
+.input('cve', sql.VarChar(20), cveLimpio).input('pre', sql.Decimal(18,2), prec)
+.input('par', sql.Int, par).input('aut', sql.Decimal(18,3), cant).input('preL', sql.Decimal(18,2), prec)
+.query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`);
       par++;
     }
     res.json({ok:true, folio, empresa:EMP});
@@ -115,4 +126,4 @@ app.post('/api/pedido', guardarPedido);
 
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, ()=>console.log('V21 CRART Existencias1>0 + 17072026 OK en '+PORT));
+app.listen(PORT, ()=>console.log('V23 FIX,, + CRART Existencias1>0 + 17072026 OK en '+PORT));
