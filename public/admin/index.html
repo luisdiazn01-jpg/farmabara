@@ -1,0 +1,11 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Panel Admin</title></head>
+<body><h1>Panel Admin - SysPtv 17072026</h1>
+<button onclick="logout()">Salir</button>
+<hr>
+<h3>Config Tienda</h3><div id="cfg"></div>
+<script>
+async function check(){ const r=await fetch('/api/admin/me'); if(!r.ok) location.href='/admin/login.html'; }
+async function loadCfg(){ const r=await fetch('/api/config'); const j=await r.json(); document.getElementById('cfg').innerText=JSON.stringify(j,null,2); }
+async function logout(){ await fetch('/api/admin/logout',{method:'POST'}); location.href='/admin/login.html'; }
+check(); loadCfg();
+</script></body></html>
