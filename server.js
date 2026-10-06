@@ -50,9 +50,12 @@ sql.connect(dbConfig).then(()=> console.log('DB Conectada')).catch(e=> console.e
 // RUTAS PRODUCTOS
 app.get('/api/productos', async (req,res)=>{
   try{
-    const r = await sql.query`SELECT * FROM Productos`;
+    const r = await sql.query`SELECT TOP 200 * FROM crart WHERE Estatus='A'`;
     res.json(r.recordset);
-  }catch(e){ res.status(500).json({error:e.message}) }
+  }catch(e){
+    console.log('ERROR crart:', e.message);
+    res.status(500).json({error:e.message});
+  }
 });
 
 // RUTAS PEDIDOS
