@@ -47,37 +47,15 @@ app.post('/api/admin/config', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// PRODUCTOS - FIX DEFINITIVO SIN Precio1
 app.get('/api/productos', async(req,res)=>{
   try{
     const p=await getPool();
     const r=await p.request().query(`
-      SELECT TOP 500
-        RTRIM(LTRIM(Articulo)) as cve,
-        RTRIM(LTRIM(nombre)) as nombre,
-        CAST(ISNULL(Precio,0) as decimal(18,2)) as precio,
-        10 as existencia
-      FROM CRART
-      WHERE LTRIM(RTRIM(Articulo)) <> ''
-      AND LTRIM(RTRIM(ISNULL(nombre,''))) <> ''
-      AND ISNULL(Precio,0) > 0
-      AND nombre NOT LIKE '%null%'
-      ORDER BY nombre
+      SELECT TOP 500 RTRIM(LTRIM(Articulo)) as cve, RTRIM(LTRIM(nombre)) as nombre, CAST(ISNULL(Precio,0) as decimal(18,2)) as precio, 10 as existencia
+      FROM CRART WHERE LTRIM(RTRIM(Articulo))<>'' AND LTRIM(RTRIM(ISNULL(nombre,'')))<>'' AND ISNULL(Precio,0)>0 AND nombre NOT LIKE '%null%' ORDER BY nombre
     `);
     res.json(r.recordset);
-  }catch(e){
-    console.error('PRODUCTOS:', e.message);
-    res.status(500).json({error:e.message});
-  }
-});
-
-app.get('/api/debug/crart', async(req,res)=>{
-  try{
-    const p=await getPool();
-    const count=await p.request().query(`SELECT COUNT(*) as total, COUNT(CASE WHEN Precio>0 THEN 1 END) as conPrecio FROM CRART`);
-    const sample=await p.request().query(`SELECT TOP 3 Articulo, nombre, Precio FROM CRART WHERE Precio>0`);
-    res.json({conteo:count.recordset[0], muestra:sample.recordset});
-  }catch(e){ res.json({error:e.message}) }
+  }catch(e){ res.status(500).json({error:e.message}) }
 });
 
 app.post('/api/cliente/registro', async(req,res)=>{
@@ -87,16 +65,24 @@ app.post('/api/cliente/registro', async(req,res)=>{
     const tel=telefono.replace(/\D/g,'').slice(-10);
     await p.request().query(`IF COL_LENGTH('C_CLIENTE','PASSWORD') IS NULL ALTER TABLE C_CLIENTE ADD PASSWORD VARCHAR(100) NULL; IF COL_LENGTH('C_CLIENTE','DIRECCION') IS NULL ALTER TABLE C_CLIENTE ADD DIRECCION VARCHAR(200) NULL; IF COL_LENGTH('C_CLIENTE','LAT') IS NULL ALTER TABLE C_CLIENTE ADD LAT VARCHAR(20) NULL; IF COL_LENGTH('C_CLIENTE','LNG') IS NULL ALTER TABLE C_CLIENTE ADD LNG VARCHAR(20) NULL;`);
     await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('pass', sql.VarChar(100), password).input('dir', sql.VarChar(200), direccion)
- .query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION) VALUES (@cve,@des,@pass,@dir) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve`);
+.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION) VALUES (@cve,@des,@pass,@dir) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve`);
     res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}) }
 });
+
+// LOGIN UNIFICADO - CLIENTE Y ADMIN
 app.post('/api/cliente/login', async(req,res)=>{
   try{
+    const tel = (req.body.telefono||'').toString().trim();
+    const pass = (req.body.password||'').toString().trim();
+    // ADMIN ENTRA DESDE LOGIN NORMAL
+    if(tel.toLowerCase()==='admin' && pass==='Admin2026!'){
+      return res.json({ok:true, esAdmin:true, cliente:{CVE_CTE:'ADMIN', DES_CTE:'ADMINISTRADOR', DIRECCION:'ADMIN'}});
+    }
     const p=await getPool();
-    const r=await p.request().input('cve', sql.VarChar(20), req.body.telefono).query(`SELECT * FROM C_CLIENTE WHERE CVE_CTE=@cve`);
+    const r=await p.request().input('cve', sql.VarChar(20), tel).query(`SELECT * FROM C_CLIENTE WHERE CVE_CTE=@cve`);
     if(r.recordset.length===0) return res.status(404).json({error:'No existe, regístrate'});
-    if(r.recordset[0].PASSWORD && r.recordset[0].PASSWORD!==req.body.password) return res.status(401).json({error:'Contraseña incorrecta'});
+    if(r.recordset[0].PASSWORD && r.recordset[0].PASSWORD!==pass) return res.status(401).json({error:'Contraseña incorrecta'});
     res.json({ok:true, cliente:r.recordset[0]});
   }catch(e){ res.status(500).json({error:e.message}) }
 });
@@ -109,7 +95,6 @@ const imgDir = path.join(__dirname,'public','img'); if(!fs.existsSync(imgDir)) f
 const upload = multer({storage: multer.diskStorage({ destination:(req,file,cb)=>cb(null,imgDir), filename:(req,file,cb)=>{ const cve=(req.body.cve||'PROD').replace(/[^a-zA-Z0-9_-]/g,'').toUpperCase(); cb(null,cve+'.jpg'); } })});
 app.post('/api/upload-imagen', upload.single('imagen'), (req,res)=>res.json({ok:true, file:`/img/${req.file.filename}`}));
 
-// PEDIDO FIX - USA SOLO Precio
 async function guardarPedido(req,res){
   const d=req.body;
   try{
@@ -119,7 +104,7 @@ async function guardarPedido(req,res){
     const nombre=(d.nombre||'CLIENTE WEB').replace(/'/g,"").slice(0,100);
     const direccion=(d.direccion||'').slice(0,200); const lat=d.lat||null; const lng=d.lng||null;
     await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('dir', sql.VarChar(200), direccion).input('lat', sql.VarChar(20), lat).input('lng', sql.VarChar(20), lng)
- .query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG) VALUES (@cve,@des,@dir,@lat,@lng) ELSE UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve`);
+.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG) VALUES (@cve,@des,@dir,@lat,@lng) ELSE UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve`);
     const fr=await p.request().query(`SELECT ISNULL(MAX(NUM_PED),0)+1 as folio FROM TH_PEDIDO WHERE ID_SUCURSAL=${SUC} AND ID_EMP='${EMP}'`);
     const folio=fr.recordset[0].folio;
     let totalReal=0; let productosReales=[];
@@ -131,11 +116,11 @@ async function guardarPedido(req,res){
     }
     const sub=totalReal/1.16; const iva=totalReal-sub;
     await p.request().input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP).input('folio', sql.Int, folio).input('cte', sql.VarChar(20), tel).input('fec', sql.DateTime, new Date()).input('fec2', sql.DateTime, new Date(Date.now()+86400000)).input('ven', sql.VarChar(10), '01').input('ivaPorc', sql.Decimal(18,2), 16).input('tipMda', sql.VarChar(10), '01').input('valMda', sql.Decimal(18,2), 1).input('sub', sql.Decimal(18,2), sub).input('ivaTot', sql.Decimal(18,2), iva)
- .query(`INSERT INTO TH_PEDIDO (ID_SUCURSAL, ID_EMP, NUM_PED, CVE_CTE, FEC_PED, FEC_ENT, IVA, CVE_VEN, CVE_TIP_MDA, VAL_TIP_MDA, SUB_TOT, IVA_TOT, TIPO_PED, STA_PED) VALUES (@suc,@emp,@folio,@cte,@fec,@fec2,@ivaPorc,@ven,@tipMda,@valMda,@sub,@ivaTot,'WEB','P')`);
+.query(`INSERT INTO TH_PEDIDO (ID_SUCURSAL, ID_EMP, NUM_PED, CVE_CTE, FEC_PED, FEC_ENT, IVA, CVE_VEN, CVE_TIP_MDA, VAL_TIP_MDA, SUB_TOT, IVA_TOT, TIPO_PED, STA_PED) VALUES (@suc,@emp,@folio,@cte,@fec,@fec2,@ivaPorc,@ven,@tipMda,@valMda,@sub,@ivaTot,'WEB','P')`);
     let par=1;
     for(const pr of productosReales){
       await p.request().input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP).input('ped', sql.Int, folio).input('can', sql.Decimal(18,3), pr.cant).input('cve', sql.VarChar(20), pr.cve).input('pre', sql.Decimal(18,2), pr.precio).input('par', sql.Int, par).input('aut', sql.Decimal(18,3), pr.cant).input('preL', sql.Decimal(18,2), pr.precio)
-   .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
+  .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
     }
     res.json({ok:true, folio, total: totalReal});
   }catch(e){ console.error(e); res.status(500).json({ok:false, error:e.message}); }
@@ -145,4 +130,4 @@ app.post('/api/pedido-web', guardarPedido);
 app.get('/api/health', (req,res)=>res.json({ok:true}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, ()=>console.log('V29 FINAL en '+PORT));
+app.listen(PORT, ()=>console.log('V32 UNIFICADO en '+PORT));
