@@ -37,7 +37,6 @@ async function getConfigDB(){
     return r.recordset[0];
   }catch{ return {ID_SUCURSAL:1, ID_EMP:'17072026', NOMBRE_TIENDA:'TIENDA WEB - SYSPTV'}; }
 }
-
 async function ensureTables(){
   try{
     const p=await getPool();
@@ -66,7 +65,6 @@ app.get('/api/productos', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// BANNERS PUBLICO
 app.get('/api/banners', async(req,res)=>{
   try{ const p=await getPool(); const r=await p.request().query(`SELECT TOP 5 * FROM WEB_BANNERS WHERE ACTIVO=1 ORDER BY ID DESC`); res.json(r.recordset); }catch(e){ res.json([]) }
 });
@@ -113,13 +111,10 @@ app.get('/api/admin/pedidos', async(req,res)=>{
     res.json(r.recordset);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
-
 app.get('/api/admin/clientes', async(req,res)=>{
   try{ const p=await getPool(); const r=await p.request().query(`SELECT TOP 100 * FROM C_CLIENTE ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
 });
-
 app.post('/api/admin/login', (req,res)=>{ if(req.body.user==='admin' && req.body.pass==='Admin2026!') res.json({ok:true}); else res.status(401).json({error:'No'}); });
-
 app.get('/api/admin/pedido/:folio', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
@@ -130,12 +125,38 @@ app.get('/api/admin/pedido/:folio', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
+// --- FIX IMAGENES V36 ---
 const imgDir = path.join(__dirname,'public','img'); if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
 const bannersDir = path.join(__dirname,'public','banners'); if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
-const upload = multer({storage: multer.diskStorage({ destination:(req,file,cb)=>{ const dest = req.body.tipo==='banner'? bannersDir : imgDir; cb(null,dest); }, filename:(req,file,cb)=>{ if(req.body.tipo==='banner'){ cb(null, 'banner_'+Date.now()+'.jpg'); } else { const cve=(req.body.cve||'PROD').replace(/[^a-zA-Z0-9_-]/g,'').toUpperCase(); cb(null,cve+'.jpg'); } } })});
+const storage = multer.diskStorage({
+  destination:(req,file,cb)=>{
+    const isBanner = (req.body.tipo==='banner' || (req.body.cve||'').toString().startsWith('banner'));
+    cb(null, isBanner? bannersDir : imgDir);
+  },
+  filename:(req,file,cb)=>{
+    if(req.body.tipo==='banner'){
+      cb(null, 'banner_'+Date.now()+'.jpg');
+    } else {
+      // FIX: siempre mayuscula, sin espacios, solo alfanumerico y guion
+      let cveRaw=(req.body.cve||'PROD').toString().trim().toUpperCase().replace(/\s+/g,'');
+      cveRaw=cveRaw.replace(/[^A-Z0-9-_]/g,'').substring(0,30);
+      if(!cveRaw) cveRaw='PROD_'+Date.now();
+      cb(null, cveRaw+'.jpg');
+    }
+  }
+});
+const upload = multer({storage, limits:{fileSize:5*1024*1024}});
 app.post('/api/upload-imagen', upload.single('imagen'), (req,res)=>{
+  if(!req.file) return res.status(400).json({error:'No file'});
   if(req.body.tipo==='banner') res.json({ok:true, file:`/banners/${req.file.filename}`});
-  else res.json({ok:true, file:`/img/${req.file.filename}`});
+  else res.json({ok:true, file:`/img/${req.file.filename}`, cve:req.file.filename.replace('.jpg','')});
+});
+app.get('/api/debug/img', (req,res)=>{
+  try{
+    const files = fs.readdirSync(imgDir).slice(0,50);
+    const bfiles = fs.readdirSync(bannersDir).slice(0,20);
+    res.json({imgDir, files, bannersDir, bfiles});
+  }catch(e){ res.json({error:e.message}) }
 });
 
 async function guardarPedido(req,res){
@@ -173,4 +194,4 @@ app.post('/api/pedido-web', guardarPedido);
 app.get('/api/health', (req,res)=>res.json({ok:true}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, ()=>console.log('V34 BANNERS+GPS_PED en '+PORT));
+app.listen(PORT, ()=>console.log('V36 FIX FOTOS+BANNER+GPS en '+PORT));
