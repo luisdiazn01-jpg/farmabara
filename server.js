@@ -1,5 +1,57 @@
-//... deja tu config igual arriba...
-// SOLO CAMBIA LA FUNCION getProductos y guardarPedido por estas:
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const sql = require('mssql');
+const multer = require('multer');
+
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+const sqlConfig = {
+  user: process.env.DB_USER || 'sa',
+  password: process.env.DB_PASS || '',
+  server: process.env.DB_SERVER || 'localhost',
+  database: process.env.DB_NAME || 'tiendaMaster',
+  port: parseInt(process.env.DB_PORT || '1433'),
+  options: { encrypt: false, trustServerCertificate: true },
+  pool: { max: 10, min: 0, idleTimeoutMillis: 30000 }
+};
+
+let pool=null;
+async function getPool(){
+  try{
+    if(pool && pool.connected) return pool;
+    if(pool) try{await pool.close()}catch{}
+    pool=await sql.connect(sqlConfig);
+    console.log('SQL Conectado');
+    return pool;
+  }catch(e){
+    console.error('SQL ERROR:', e.message);
+    throw e;
+  }
+}
+
+async function getConfigDB(){
+  try{
+    const p=await getPool();
+    await p.request().query(`IF OBJECT_ID('CFG_TIENDA_WEB') IS NULL CREATE TABLE CFG_TIENDA_WEB (ID INT PRIMARY KEY, ID_SUCURSAL SMALLINT, ID_EMP VARCHAR(20), CVE_TAL VARCHAR(10), NUM_ALM VARCHAR(10), CVE_VEN VARCHAR(10), TIPO_PED VARCHAR(10), WHATSAPP_REPARTO VARCHAR(20), NOMBRE_TIENDA VARCHAR(100))`);
+    await p.request().query(`IF NOT EXISTS(SELECT 1 FROM CFG_TIENDA_WEB WHERE ID=1) INSERT INTO CFG_TIENDA_WEB (ID,ID_SUCURSAL,ID_EMP,CVE_TAL,NUM_ALM,CVE_VEN,TIPO_PED,NOMBRE_TIENDA) VALUES (1,1,'17072026','01','01','01','WEB','TIENDA WEB - SYSPTV')`);
+    const r=await p.request().query(`SELECT * FROM CFG_TIENDA_WEB WHERE ID=1`);
+    return r.recordset[0];
+  }catch(e){
+    console.log('CFG fallback', e.message);
+    return {ID_SUCURSAL:1, ID_EMP:'17072026', CVE_TAL:'01', NUM_ALM:'01', CVE_VEN:'01', NOMBRE_TIENDA:'TIENDA WEB - SYSPTV'};
+  }
+}
+
+app.get('/api/config', async(req,res)=>{
+  const cfg=await getConfigDB();
+  res.json(cfg);
+});
 
 app.get('/api/productos', async(req,res)=>{
   try{
@@ -8,37 +60,42 @@ app.get('/api/productos', async(req,res)=>{
       SELECT TOP 500
         RTRIM(LTRIM(Articulo)) as cve,
         RTRIM(LTRIM(nombre)) as nombre,
-        ISNULL(CAST(NULLIF(Precio,0) as decimal(18,2)), ISNULL(CAST(Precio1 as decimal(18,2)),0)) as precio,
+        ISNULL(CAST(Precio1 as decimal(18,2)), ISNULL(CAST(Precio as decimal(18,2)),0)) as precio,
         ISNULL(CAST(Existencias1 as decimal(18,2)),0) as existencia
       FROM dbo.CRART
-      WHERE LTRIM(RTRIM(nombre))<>'' AND ISNULL(Existencias1,0) > 0
+      WHERE LTRIM(RTRIM(nombre))<>'' AND LTRIM(RTRIM(Articulo))<>'' AND ISNULL(Existencias1,0) > 0
       ORDER BY nombre
     `);
+    res.json(r.recordset);
+  }catch(e){
+    console.error('PRODUCTOS ERROR:', e.message);
+    res.json([]); // NO TUMBA EL SERVER, regresa vacío
+  }
+});
+
+// ADMIN
+app.post('/api/admin/login', (req,res)=>{
+  const {user, pass} = req.body;
+  if(user==='admin' && pass==='Admin2026!') res.json({ok:true});
+  else res.status(401).json({error:'Credenciales'});
+});
+
+app.get('/api/admin/pedidos', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
     res.json(r.recordset);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// LOGIN ADMIN SIMPLE
-app.post('/api/admin/login', (req,res)=>{
-  const {user, pass} = req.body;
-  if(user==='admin' && pass==='Admin2026!'){ res.json({ok:true}); }
-  else res.status(401).json({error:'No'});
-});
+const imgDir = path.join(__dirname,'public','img');
+if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
+const upload = multer({storage: multer.diskStorage({
+  destination:(req,file,cb)=>cb(null,imgDir),
+  filename:(req,file,cb)=>{ const cve=(req.body.cve||'PROD').replace(/[^a-zA-Z0-9_-]/g,'').toUpperCase(); cb(null,cve+'.jpg'); }
+})});
+app.post('/api/upload-imagen', upload.single('imagen'), (req,res)=>{ res.json({ok:true, file:`/img/${req.file.filename}`})});
 
-// CONFIG EMPRESA
-app.post('/api/admin/config', async(req,res)=>{
-  const p=await getPool();
-  const c=req.body;
-  await p.request()
-   .input('suc', sql.SmallInt, c.ID_SUCURSAL)
-   .input('emp', sql.VarChar(20), c.ID_EMP)
-   .input('nom', sql.VarChar(100), c.NOMBRE_TIENDA)
-   .input('whats', sql.VarChar(20), c.WHATSAPP_REPARTO)
-   .query(`UPDATE CFG_TIENDA_WEB SET ID_SUCURSAL=@suc, ID_EMP=@emp, NOMBRE_TIENDA=@nom, WHATSAPP_REPARTO=@whats WHERE ID=1`);
-  res.json({ok:true});
-});
-
-// --- PEDIDO FIX PRECIOS REALES + UBICACION ---
 async function guardarPedido(req,res){
   const d=req.body;
   try{
@@ -48,26 +105,21 @@ async function guardarPedido(req,res){
     const EMP=String(cfg.ID_EMP).trim()||'17072026';
     const tel=(d.telefono||'').toString().replace(/\D/g,'').slice(-10) || 'W'+Date.now().toString().slice(-8);
     const nombre=(d.nombre||'CLIENTE WEB').replace(/'/g,"").slice(0,100);
-    const direccion = (d.direccion||'').slice(0,200);
-    const lat = d.lat||null; const lng = d.lng||null;
+    const direccion=(d.direccion||'').slice(0,200);
+    const lat=d.lat||null; const lng=d.lng||null;
 
-    // Crea tabla de ubicacion si no existe
     await p.request().query(`IF COL_LENGTH('C_CLIENTE','DIRECCION') IS NULL ALTER TABLE C_CLIENTE ADD DIRECCION VARCHAR(200) NULL; IF COL_LENGTH('C_CLIENTE','LAT') IS NULL ALTER TABLE C_CLIENTE ADD LAT VARCHAR(20) NULL; IF COL_LENGTH('C_CLIENTE','LNG') IS NULL ALTER TABLE C_CLIENTE ADD LNG VARCHAR(20) NULL;`);
-
     await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('dir', sql.VarChar(200), direccion).input('lat', sql.VarChar(20), lat).input('lng', sql.VarChar(20), lng)
-.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG) VALUES (@cve,@des,@dir,@lat,@lng) ELSE UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve`);
+.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG) VALUES (@cve,@des,@dir,@lat,@lng) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve`);
 
     const fr=await p.request().query(`SELECT ISNULL(MAX(NUM_PED),0)+1 as folio FROM TH_PEDIDO WHERE ID_SUCURSAL=${SUC} AND ID_EMP='${EMP}'`);
     const folio=fr.recordset[0].folio;
 
-    // CALCULA TOTAL REAL DESDE BD PARA QUE NO CAIGA EN 0
-    let totalReal=0;
-    let productosReales=[];
+    let totalReal=0; let productosReales=[];
     for(const prod of d.productos||[]){
       let cveLimpio=(prod.cve||prod.articulo||'').toString().trim().substring(0,20);
-      const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).query(`SELECT ISNULL(CAST(NULLIF(Precio,0) as decimal(18,2)), ISNULL(CAST(Precio1 as decimal(18,2)),0)) as precio FROM CRART WHERE Articulo=@cve`);
+      const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).query(`SELECT ISNULL(CAST(Precio1 as decimal(18,2)), CAST(Precio as decimal(18,2))) as precio FROM CRART WHERE LTRIM(RTRIM(Articulo))=@cve`);
       let precioReal = rPrecio.recordset[0]?.precio || prod.precio || 0;
-      if(precioReal==0) precioReal = prod.precio; // fallback
       productosReales.push({cve:cveLimpio, cant: prod.cantidad, precio: precioReal});
       totalReal+=precioReal*prod.cantidad;
     }
@@ -82,6 +134,15 @@ async function guardarPedido(req,res){
 .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`);
       par++;
     }
-    res.json({ok:true, folio, empresa:EMP, total:totalReal});
-  }catch(e){ console.error(e); res.status(500).json({ok:false, error:e.message}); }
+    res.json({ok:true, folio, total: totalReal});
+  }catch(e){ console.error('PEDIDO ERROR', e); res.status(500).json({ok:false, error:e.message}); }
 }
+app.post('/api/pedidos', guardarPedido);
+app.post('/api/pedido-web', guardarPedido);
+app.post('/api/pedido', guardarPedido);
+
+app.get('/api/health', (req,res)=>res.json({ok:true, time:new Date()}));
+app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
+
+const PORT=process.env.PORT||3000;
+app.listen(PORT, ()=>console.log('V26 ESTABLE en '+PORT));
