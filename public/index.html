@@ -2,58 +2,63 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TIENDA SYSPTV</title>
+<title>TIENDA WEB - SYSPTV</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
 body{background:#F8FAFC;color:#0F172A}
 header{background:#0F172A;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
-header b{font-size:18px}
 .badge{background:#059669;color:#fff;padding:6px 12px;border-radius:999px;font-weight:800}
-.wrap{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:1fr 380px;gap:20px;padding:20px}
-@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+.wrap{max-width:1300px;margin:auto;display:grid;grid-template-columns:1fr 390px;gap:20px;padding:20px}
+@media(max-width:950px){.wrap{grid-template-columns:1fr}}
 .card{background:#fff;border:1px solid #E2E8F0;border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(15,23,42,.05)}
-.search{width:100%;padding:14px 16px;border-radius:12px;border:1px solid #E2E8F0;outline:none;margin-bottom:16px;font-size:14px}
-.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:14px }
-.prod{border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;background:#fff;transition:.2s}
-.prod:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(15,23,42,.08)}
-.prod.img{width:100%;height:140px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.prod.img img{width:100%;height:100%;object-fit:cover}
-.prod.info{padding:10px}
-.prod.nom{font-size:13px;font-weight:600;line-height:1.2;height:38px;overflow:hidden}
-.prod.cve{font-size:11px;color:#64748B}
-.prod.pre{color:#047857;font-weight:800;margin:6px 0}
+.search{width:100%;padding:14px 16px;border-radius:12px;border:1px solid #E2E8F0;outline:none;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px}
+.prod{border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;background:#fff}
+.prod .img{width:100%;height:135px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.prod .img img{width:100%;height:100%;object-fit:cover}
+.prod .info{padding:10px}
+.prod .nom{font-size:13px;font-weight:600;line-height:1.2;height:38px;overflow:hidden}
+.prod .cve{font-size:11px;color:#64748B;margin-top:2px}
+.prod .pre{color:#047857;font-weight:800;margin:6px 0;font-size:15px}
 .btn{width:100%;background:#059669;color:#fff;border:0;padding:10px;border-radius:12px;font-weight:700;cursor:pointer}
 .btn:hover{background:#047857}
-.carrito-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F1F5F9}
-input.ipt{width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0;outline:none}
+.btn:disabled{background:#94A3B8}
+.ipt{width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0;outline:none}
+.ipt:focus{border-color:#059669}
+.small{font-size:12px;color:#64748B}
+.loc-btn{background:#F1F5F9;border:1px dashed #059669;color:#047857;padding:10px;border-radius:12px;width:100%;cursor:pointer;font-weight:600;margin:6px 0}
 </style>
 </head>
 <body>
 <header>
-<b id="nombre-tienda">TIENDA SYSPTV</b>
-<div>🛒 <span id="count" class="badge">0</span></div>
+<b id="nombre-tienda">TIENDA WEB - SYSPTV</b>
+<div>🛒 <span id="count" class="badge">0</span> <a href="/admin.html" style="color:#fff;margin-left:12px;text-decoration:none;font-size:12px">Admin</a></div>
 </header>
 
 <div class="wrap">
 <div>
 <div class="card">
 <input id="buscador" class="search" placeholder="Buscar producto por nombre o código...">
-<div id="productos" class="grid">Cargando productos...</div>
+<div id="productos" class="grid">Cargando productos de CRART...</div>
 </div>
 </div>
 
 <div>
 <div class="card" style="position:sticky;top:70px">
-<h3 style="margin-bottom:10px">Tu Pedido</h3>
-<div id="carrito-lista" style="max-height:300px;overflow:auto"><small style="color:#64748B">Carrito vacío</small></div>
-<div id="total" style="font-weight:800;font-size:18px;margin:12px 0;color:#0F172A">Total: $0.00</div>
+<h3>Tu Pedido</h3>
+<div id="carrito-lista" style="max-height:280px;overflow:auto;margin:10px 0"><small class="small">Carrito vacío</small></div>
+<div id="total" style="font-weight:800;font-size:18px;margin:12px 0">Total: $0.00</div>
 
-<input id="nombre" class="ipt" placeholder="Tu nombre completo">
-<input id="telefono" class="ipt" placeholder="WhatsApp 10 dígitos">
+<input id="nombre" class="ipt" placeholder="Nombre completo *">
+<input id="telefono" class="ipt" placeholder="WhatsApp 10 dígitos *">
+<input id="direccion" class="ipt" placeholder="Calle, número, colonia *">
 
-<button class="btn" onclick="hacerPedido()">HACER PEDIDO</button>
-<p id="msg" style="margin-top:10px;font-size:13px;color:#059669"></p>
+<button class="loc-btn" onclick="obtenerUbicacion()">📍 Obtener mi ubicación GPS</button>
+<div id="loc-status" class="small" style="margin-bottom:6px">Ubicación no obtenida (opcional pero ayuda al reparto)</div>
+
+<button id="btn-pedido" class="btn" onclick="hacerPedido()">HACER PEDIDO</button>
+<p id="msg" style="margin-top:10px;font-size:13px;font-weight:600"></p>
 </div>
 </div>
 </div>
@@ -61,82 +66,110 @@ input.ipt{width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;ma
 <script>
 let todos=[];
 let carrito=[];
+let myLat=null, myLng=null;
+
 async function init(){
- const cfg=await fetch('/api/config').then(r=>r.json()).catch(()=>({}));
- if(cfg.NOMBRE_TIENDA) document.getElementById('nombre-tienda').innerText=cfg.NOMBRE_TIENDA;
- const r=await fetch('/api/productos'); todos=await r.json();
- renderProductos(todos);
+  try{
+    const cfg=await fetch('/api/config').then(r=>r.json());
+    if(cfg.NOMBRE_TIENDA) document.getElementById('nombre-tienda').innerText=cfg.NOMBRE_TIENDA;
+  }catch{}
+  const r=await fetch('/api/productos');
+  todos=await r.json();
+  renderProductos(todos);
 }
 function renderProductos(lista){
- const div=document.getElementById('productos'); div.innerHTML='';
- if(!lista.length){ div.innerHTML='Sin productos'; return; }
- lista.forEach(p=>{
-   const cve=(p.cve||'').trim();
-   const nom=(p.nombre||'').trim();
-   const pre=Number(p.precio||0);
-   div.innerHTML+=`
-   <div class="prod">
-     <div class="img"><img src="/img/${cve}.jpg" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=color:#94A3B8;font-size:12px>${cve}</span>'"></div>
-     <div class="info">
-       <div class="nom">${nom}</div>
-       <div class="cve">${cve} | Ex: ${p.existencia}</div>
-       <div class="pre">$${pre.toFixed(2)}</div>
-       <button class="btn" onclick="agregar('${cve.replace(/'/g,'')}','${nom.replace(/'/g,'').replace(/"/g,'')}','${pre}')">Agregar</button>
-     </div>
-   </div>`;
- });
+  const div=document.getElementById('productos'); div.innerHTML='';
+  if(!lista.length){ div.innerHTML='Sin productos con existencia'; return; }
+  lista.slice(0,120).forEach(p=>{
+    const cve=(p.cve||'').trim();
+    const nom=(p.nombre||'').trim().replace(/'/g,"").replace(/"/g,"");
+    const pre=Number(p.precio||0);
+    div.innerHTML+=`
+    <div class="prod">
+      <div class="img"><img src="/img/${cve}.jpg?v=${cve}" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=color:#94A3B8;font-size:11px;text-align:center'>${cve}</span>'"></div>
+      <div class="info">
+        <div class="nom">${p.nombre}</div>
+        <div class="cve">${cve} | Ex: ${p.existencia}</div>
+        <div class="pre">$${pre.toFixed(2)}</div>
+        <button class="btn" onclick="agregar('${cve}','${nom}',${pre})">Agregar</button>
+      </div>
+    </div>`;
+  });
 }
 function agregar(articulo,nombre,precio){
- let f=carrito.find(x=>x.articulo===articulo);
- if(f){ f.cantidad++; }
- else { carrito.push({articulo, nombre, precio: Number(precio), cantidad:1}); }
- renderCarrito();
+  let f=carrito.find(x=>x.articulo===articulo);
+  if(f){ f.cantidad++; }
+  else { carrito.push({articulo, nombre, precio: Number(precio), cantidad:1}); }
+  renderCarrito();
 }
 function renderCarrito(){
- const div=document.getElementById('carrito-lista'); let total=0; div.innerHTML='';
- if(carrito.length===0){ div.innerHTML='<small style=color:#64748B>Carrito vacío</small>'; }
- carrito.forEach((it,i)=>{
-   const sub=it.precio*it.cantidad; total+=sub;
-   div.innerHTML+=`
-   <div class="carrito-item">
-     <div style="flex:1">
-       <div style="font-weight:700;font-size:13px">${it.nombre}</div>
-       <div style="font-size:11px;color:#64748B">${it.articulo}</div>
-       <div style="color:#047857;font-weight:700;font-size:13px">$${it.precio} x ${it.cantidad} = $${sub.toFixed(2)}</div>
-     </div>
-     <div style="display:flex;align-items:center;gap:6px">
-       <button onclick="cambiarCant(${i},-1)" style="width:26px;height:26px;border-radius:8px;border:1px solid #E2E8F0;cursor:pointer">-</button>
-       <b>${it.cantidad}</b>
-       <button onclick="cambiarCant(${i},1)" style="width:26px;height:26px;border-radius:8px;border:1px solid #E2E8F0;cursor:pointer">+</button>
-       <span onclick="carrito.splice(${i},1);renderCarrito()" style="cursor:pointer;margin-left:4px">✕</span>
-     </div>
-   </div>`;
- });
- document.getElementById('total').innerText=`Total: $${total.toFixed(2)}`;
- document.getElementById('count').innerText=carrito.reduce((s,p)=>s+p.cantidad,0);
+  const div=document.getElementById('carrito-lista'); let total=0; div.innerHTML='';
+  if(carrito.length===0) div.innerHTML='<small class="small">Carrito vacío</small>';
+  carrito.forEach((it,i)=>{
+    const sub=it.precio*it.cantidad; total+=sub;
+    div.innerHTML+=`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F5F9">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px;line-height:1.1">${it.nombre}</div>
+        <div style="font-size:11px;color:#64748B">${it.articulo}</div>
+        <div style="color:#047857;font-weight:700;font-size:13px">$${it.precio.toFixed(2)} x ${it.cantidad} = $${sub.toFixed(2)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="cambiarCant(${i},-1)" style="width:26px;height:26px;border-radius:8px;border:1px solid #E2E8F0;cursor:pointer">-</button>
+        <b>${it.cantidad}</b>
+        <button onclick="cambiarCant(${i},1)" style="width:26px;height:26px;border-radius:8px;border:1px solid #E2E8F0;cursor:pointer">+</button>
+        <span onclick="carrito.splice(${i},1);renderCarrito()" style="cursor:pointer;margin-left:4px">✕</span>
+      </div>
+    </div>`;
+  });
+  document.getElementById('total').innerText=`Total: $${total.toFixed(2)}`;
+  document.getElementById('count').innerText=carrito.reduce((s,p)=>s+p.cantidad,0);
 }
 function cambiarCant(i,d){ carrito[i].cantidad+=d; if(carrito[i].cantidad<=0) carrito.splice(i,1); renderCarrito(); }
 
 document.getElementById('buscador').addEventListener('input', e=>{
- const q=e.target.value.toLowerCase();
- const f=todos.filter(p=>(p.nombre||'').toLowerCase().includes(q) || (p.cve||'').toLowerCase().includes(q));
- renderProductos(f.slice(0,100));
+  const q=e.target.value.toLowerCase();
+  const f=todos.filter(p=>(p.nombre||'').toLowerCase().includes(q) || (p.cve||'').toLowerCase().includes(q));
+  renderProductos(f);
 });
 
+function obtenerUbicacion(){
+  const st=document.getElementById('loc-status');
+  st.innerText='Obteniendo ubicación...';
+  if(!navigator.geolocation){ st.innerText='Tu navegador no permite GPS'; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    myLat=pos.coords.latitude.toFixed(6);
+    myLng=pos.coords.longitude.toFixed(6);
+    st.innerHTML=`✅ Ubicación: ${myLat}, ${myLng} - <a href="https://maps.google.com/?q=${myLat},${myLng}" target="_blank">Ver en Maps</a>`;
+  }, err=>{ st.innerText='No se pudo obtener ubicación: '+err.message; });
+}
+
 async function hacerPedido(){
- if(carrito.length===0) return alert('Carrito vacío');
- const nombre=document.getElementById('nombre').value.trim();
- const telefono=document.getElementById('telefono').value.trim();
- if(!nombre||!telefono) return alert('Pon nombre y WhatsApp');
- const total=carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
- document.getElementById('msg').innerText='Guardando...';
- const res=await fetch('/api/pedidos',{
-   method:'POST', headers:{'Content-Type':'application/json'},
-   body: JSON.stringify({nombre, telefono, total, productos: carrito.map(p=>({cve:p.articulo, cantidad:p.cantidad, precio:p.precio}))})
- });
- const j=await res.json();
- if(j.ok){ document.getElementById('msg').innerText='✅ Pedido #'+j.folio+' guardado en SYSPTV'; carrito=[]; renderCarrito(); }
- else { document.getElementById('msg').innerText='❌ '+j.error; }
+  if(carrito.length===0) return alert('Carrito vacío');
+  const nombre=document.getElementById('nombre').value.trim();
+  const telefono=document.getElementById('telefono').value.trim();
+  const direccion=document.getElementById('direccion').value.trim();
+  if(!nombre||!telefono||!direccion) return alert('Pon nombre, WhatsApp y dirección');
+  const total=carrito.reduce((s,p)=>s+p.precio*p.cantidad,0);
+  document.getElementById('btn-pedido').disabled=true;
+  document.getElementById('msg').innerText='Guardando en SYSPTV...';
+  try{
+    const res=await fetch('/api/pedidos',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        nombre, telefono, direccion, lat: myLat, lng: myLng, total,
+        productos: carrito.map(p=>({cve:p.articulo, cantidad:p.cantidad, precio:p.precio}))
+      })
+    });
+    const j=await res.json();
+    if(j.ok){
+      document.getElementById('msg').innerHTML=`✅ Pedido #${j.folio} guardado en SYSPTV - Total real: $${Number(j.total||total).toFixed(2)}<br><small>Cliente ${telefono} registrado en C_CLIENTE</small>`;
+      carrito=[]; renderCarrito();
+    } else {
+      document.getElementById('msg').innerText='❌ '+j.error;
+    }
+  }catch(e){ document.getElementById('msg').innerText='❌ Error: '+e.message; }
+  document.getElementById('btn-pedido').disabled=false;
 }
 init();
 </script>
