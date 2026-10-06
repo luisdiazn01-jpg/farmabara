@@ -70,12 +70,10 @@ app.post('/api/cliente/registro', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// LOGIN UNIFICADO - CLIENTE Y ADMIN
 app.post('/api/cliente/login', async(req,res)=>{
   try{
     const tel = (req.body.telefono||'').toString().trim();
     const pass = (req.body.password||'').toString().trim();
-    // ADMIN ENTRA DESDE LOGIN NORMAL
     if(tel.toLowerCase()==='admin' && pass==='Admin2026!'){
       return res.json({ok:true, esAdmin:true, cliente:{CVE_CTE:'ADMIN', DES_CTE:'ADMINISTRADOR', DIRECCION:'ADMIN'}});
     }
@@ -87,9 +85,30 @@ app.post('/api/cliente/login', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.get('/api/admin/pedidos', async(req,res)=>{ try{ const p=await getPool(); const cfg=await getConfigDB(); const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) } });
-app.get('/api/admin/clientes', async(req,res)=>{ try{ const p=await getPool(); const r=await p.request().query(`SELECT TOP 100 * FROM C_CLIENTE ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) } });
+app.get('/api/admin/pedidos', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
+    res.json(r.recordset);
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
+
+app.get('/api/admin/clientes', async(req,res)=>{
+  try{ const p=await getPool(); const r=await p.request().query(`SELECT TOP 100 * FROM C_CLIENTE ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
+});
+
 app.post('/api/admin/login', (req,res)=>{ if(req.body.user==='admin' && req.body.pass==='Admin2026!') res.json({ok:true}); else res.status(401).json({error:'No'}); });
+
+// NUEVO V33 - DETALLE DE PEDIDO
+app.get('/api/admin/pedido/:folio', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const folio=parseInt(req.params.folio);
+    const h=await p.request().query(`SELECT th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.CVE_CTE, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE WHERE th.NUM_PED=${folio} AND th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}'`);
+    const d=await p.request().query(`SELECT td.CAN_PRO, td.CVE_PRO, td.PRE_PRO, ISNULL(RTRIM(LTRIM(cr.nombre)),'') as nombre FROM TD_PEDIDO td LEFT JOIN CRART cr ON LTRIM(RTRIM(cr.Articulo))=LTRIM(RTRIM(td.CVE_PRO)) WHERE td.NUM_PED=${folio} AND td.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND td.ID_EMP='${cfg.ID_EMP}' ORDER BY td.NUM_PAR`);
+    res.json({header:h.recordset[0]||null, detail:d.recordset});
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
 
 const imgDir = path.join(__dirname,'public','img'); if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
 const upload = multer({storage: multer.diskStorage({ destination:(req,file,cb)=>cb(null,imgDir), filename:(req,file,cb)=>{ const cve=(req.body.cve||'PROD').replace(/[^a-zA-Z0-9_-]/g,'').toUpperCase(); cb(null,cve+'.jpg'); } })});
@@ -120,7 +139,7 @@ async function guardarPedido(req,res){
     let par=1;
     for(const pr of productosReales){
       await p.request().input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP).input('ped', sql.Int, folio).input('can', sql.Decimal(18,3), pr.cant).input('cve', sql.VarChar(20), pr.cve).input('pre', sql.Decimal(18,2), pr.precio).input('par', sql.Int, par).input('aut', sql.Decimal(18,3), pr.cant).input('preL', sql.Decimal(18,2), pr.precio)
-  .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
+ .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
     }
     res.json({ok:true, folio, total: totalReal});
   }catch(e){ console.error(e); res.status(500).json({ok:false, error:e.message}); }
@@ -130,4 +149,4 @@ app.post('/api/pedido-web', guardarPedido);
 app.get('/api/health', (req,res)=>res.json({ok:true}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, ()=>console.log('V32 UNIFICADO en '+PORT));
+app.listen(PORT, ()=>console.log('V33 DETALLE en '+PORT));
