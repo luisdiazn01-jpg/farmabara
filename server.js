@@ -48,7 +48,7 @@ function soloAdmin(req,res,next){
 app.get('/api/productos', async (req,res)=>{
   try{
     const p = await getPool();
-    const r = await p.request().query(`SELECT TOP 200 * FROM crart ORDER BY Descrip`);
+    const r = await p.request().query(`SELECT TOP 200 * FROM crart ORDER BY Nombre`);
     res.json(r.recordset);
   }catch(e){
     console.log('ERROR crart:', e.message);
