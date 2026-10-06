@@ -62,7 +62,7 @@ app.get('/api/productos', async(req,res)=>{
       SELECT TOP 500
         CAST(RTRIM(LTRIM(Articulo)) as VARCHAR(50)) as cve,
         CAST(RTRIM(LTRIM(nombre)) as VARCHAR(200)) as nombre,
-        ISNULL(Precio1, ISNULL(Precio,0)) as precio,
+        ISNULL(Precio, ISNULL(Precio,0)) as precio,
         ISNULL(Existencias1, 10) as existencia
       FROM CRART
       ORDER BY nombre
