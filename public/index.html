@@ -1,65 +1,101 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title id="titulo">TIENDA WEB - SYSPTV</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIENDA WEB - SYSPTV</title>
+<style>
+body{margin:0;font-family:Arial;background:#f5f5f5}
+header{background:#000;color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
+header a{color:#fff;text-decoration:none;background:#222;padding:6px 12px;border-radius:6px;margin-left:8px}
+.container{display:flex;gap:15px;padding:15px}
+.productos{flex:3;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:#fff;padding:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.card b{font-size:13px;display:block;min-height:30px}
+.btn{width:100%;background:#000;color:#fff;border:0;padding:8px;border-radius:6px;margin-top:8px;cursor:pointer}
+.pedido{flex:1;background:#fff;padding:15px;border-radius:8px;height:fit-content;position:sticky;top:10px}
+.pedido input,.pedido select{width:100%;padding:8px;margin:6px 0;border:1px solid #ccc;border-radius:6px}
+.btnEnviar{width:100%;background:#000;color:#fff;padding:12px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px}
+</style>
 </head>
-<body class="bg-gray-100">
-<header class="bg-black text-white p-3 font-bold flex justify-between">
-  <span id="nombreTienda">🛒 TIENDA WEB - SYSPTV</span>
-  <a href="/admin.html" class="text-xs bg-white text-black px-2 py-1 rounded">Admin</a>
+<body>
+<header>
+  <div><b>TIENDA WEB - SYSPTV</b></div>
+  <div id="authBtns">
+    <a href="/login.html" id="btnLogin">Iniciar Sesión</a>
+    <a href="/registro.html" id="btnRegistro">Registrarse</a>
+    <a href="/admin.html" id="btnAdmin" style="display:none;">Admin</a>
+    <button id="btnLogout" style="display:none; background:#fff; color:#000; border:0; padding:6px 12px; border-radius:6px; cursor:pointer;" onclick="logout()">Salir</button>
+  </div>
 </header>
-<div class="flex flex-col md:flex-row p-4 gap-4">
-  <div id="productos" class="grid grid-cols-2 gap-3 flex-1"></div>
-  <div class="bg-white p-4 rounded-lg shadow w-full md:w-96">
-    <h3 class="font-bold">Tu Pedido</h3>
-    <div id="carrito" class="text-sm my-2"></div>
-    <div class="font-bold">Total: $<span id="total">0</span></div>
-    <h4 class="font-bold mt-4">Datos de Entrega</h4>
-    <input id="nombre" placeholder="Nombre" class="border w-full p-2 rounded mt-2">
-    <input id="telefono" placeholder="Tel / WhatsApp" class="border w-full p-2 rounded mt-2">
-    <input id="direccion" placeholder="Calle y Número" class="border w-full p-2 rounded mt-2">
-    <input id="colonia" placeholder="Colonia" class="border w-full p-2 rounded mt-2">
-    <input id="ciudad" placeholder="Ciudad" class="border w-full p-2 rounded mt-2">
-    <select id="pago" class="border w-full p-2 rounded mt-2"><option>EFECTIVO</option><option>TRANSFERENCIA</option></select>
-    <div id="ubicacionBox" class="bg-blue-50 p-2 rounded mt-2 text-xs">
-      <span id="ubiText">📍 Sin ubicación</span><br>
-      <button onclick="capturarGPS()" class="text-blue-600 underline">📍 Capturar mi ubicación GPS</button>
-      <input type="hidden" id="lat"><input type="hidden" id="lng">
+
+<div class="container">
+  <div class="productos" id="productos"></div>
+  <div class="pedido">
+    <b>Tu Pedido</b>
+    <p>Total: $<span id="total">0</span></p>
+    <div id="listaCarrito" style="font-size:13px;"></div>
+    <hr>
+    <b>Datos de Entrega</b>
+    <input id="nombre" placeholder="Nombre">
+    <input id="tel" placeholder="Tel / WhatsApp">
+    <input id="calle" placeholder="Calle y Número">
+    <input id="colonia" placeholder="Colonia">
+    <input id="ciudad" placeholder="Ciudad">
+    <select id="pago"><option>EFECTIVO</option><option>TRANSFERENCIA</option></select>
+    <div style="background:#eef6ff; padding:8px; font-size:12px; margin-top:8px;">
+      📍 <span id="ubi">Ubicación: obteniendo...</span> <a href="#" onclick="getUbi()">Capturar mi ubicación GPS</a>
     </div>
-    <button id="btnEnviar" onclick="enviarPedido()" class="bg-black text-white w-full p-3 rounded mt-3 font-bold">ENVIAR PEDIDO</button>
+    <button class="btnEnviar" onclick="enviarPedido()">ENVIAR PEDIDO</button>
   </div>
 </div>
+
 <script>
-let carrito=[], total=0, cfg={};
-async function init(){
-  const c=await fetch('/api/config').then(r=>r.json());
-  cfg=c; document.getElementById('nombreTienda').innerText=c.NOMBRE_TIENDA||'TIENDA WEB - SYSPTV'; document.getElementById('titulo').innerText=c.NOMBRE_TIENDA;
-  const prods=await fetch('/api/productos').then(r=>r.json());
-  document.getElementById('productos').innerHTML=prods.map(p=>`
-    <div class="bg-white p-3 rounded shadow"><div class="font-bold text-sm">${p.nombre}</div><div class="text-xs opacity-60">${p.cve}</div><div class="font-bold">$${p.precio}</div><button onclick="add('${p.cve}','${p.nombre}',${p.precio})" class="bg-black text-white w-full mt-2 text-xs p-1 rounded">+ Agregar</button></div>
-  `).join('');
+let carrito=[]; let total=0; let ubiTxt="";
+function getUbi(){
+  navigator.geolocation.getCurrentPosition(p=>{
+    ubiTxt = p.coords.latitude+','+p.coords.longitude;
+    document.getElementById('ubi').innerText='Ubicación: '+ubiTxt;
+  });
 }
-function add(cve,nombre,precio){ let e=carrito.find(x=>x.cve==cve); if(e) e.cantidad++; else carrito.push({cve,nombre,precio,cantidad:1}); render(); }
-function render(){ let h='', t=0; carrito.forEach(i=>{ t+=i.precio*i.cantidad; h+=`${i.nombre} x${i.cantidad} $${i.precio*i.cantidad}<br>`; }); document.getElementById('carrito').innerHTML=h||'Vacío'; document.getElementById('total').innerText=t; total=t; }
-function capturarGPS(){ navigator.geolocation.getCurrentPosition(pos=>{ document.getElementById('lat').value=pos.coords.latitude; document.getElementById('lng').value=pos.coords.longitude; document.getElementById('ubiText').innerHTML=`✅ Ubicación: ${pos.coords.latitude}, ${pos.coords.longitude} <a target="_blank" href="https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}" class="underline">Ver Maps</a>`; }); }
-async function enviarPedido(){
-  const btn=document.getElementById('btnEnviar'); btn.innerText='ENVIANDO...'; btn.disabled=true;
-  const data={ nombre:document.getElementById('nombre').value, telefono:document.getElementById('telefono').value, direccion:document.getElementById('direccion').value, colonia:document.getElementById('colonia').value, ciudad:document.getElementById('ciudad').value, total, productos:carrito, lat:document.getElementById('lat').value, lng:document.getElementById('lng').value };
-  if(!data.nombre||!data.telefono) { alert('Falta nombre y teléfono'); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false; return; }
-  try{
-    const res=await fetch('/api/pedido-web',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}).then(r=>r.json());
-    if(res.ok){
-      const maps=`https://www.google.com/maps?q=${data.lat},${data.lng}`;
-      const msg=`*PEDIDO WEB #${res.folio} - ${cfg.NOMBRE_TIENDA}*%0AEmpresa:${res.empresa} Suc:${res.sucursal}%0ACliente:${res.cliente}%0ATel:${data.telefono}%0ADir:${data.direccion} ${data.colonia}%0ATotal:$${res.total}%0A%0A📍 GPS: ${maps}`;
-      alert(`✅ Pedido #${res.folio} creado!\nCliente: ${res.cliente}\nEmpresa: ${res.empresa} Suc: ${res.sucursal}`);
-      if(cfg.WHATSAPP_REPARTO) window.open(`https://wa.me/${cfg.WHATSAPP_REPARTO}?text=${msg}`,'_blank');
-      carrito=[]; render(); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false;
-    } else { alert('Error: '+res.error); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false; }
-  }catch(e){ alert('Error conexión: '+e.message); btn.innerText='ENVIAR PEDIDO'; btn.disabled=false; }
+getUbi();
+
+fetch('/api/productos').then(r=>r.json()).then(data=>{
+  const cont=document.getElementById('productos');
+  cont.innerHTML='';
+  data.forEach(p=>{
+    cont.innerHTML+=`<div class="card"><b>${p.Nombre||p.nombre}</b><small>${p.Codigo||''}</small><br><b>$${p.Precio||0}</b><button class="btn" onclick="agregar('${p.Nombre}',${p.Precio})">+ Agregar</button></div>`;
+  });
+});
+
+function agregar(nombre,precio){
+  carrito.push({nombre,precio});
+  total+=Number(precio);
+  document.getElementById('total').innerText=total;
+  document.getElementById('listaCarrito').innerHTML+=`<div>${nombre} - $${precio}</div>`;
 }
-init(); capturarGPS();
+function enviarPedido(){
+  fetch('/api/pedidos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:document.getElementById('nombre').value,telefono:document.getElementById('tel').value,calle:document.getElementById('calle').value,colonia:document.getElementById('colonia').value,ciudad:document.getElementById('ciudad').value,pago:document.getElementById('pago').value,ubicacion:ubiTxt,carrito,total})}).then(r=>r.json()).then(d=>{alert('Pedido enviado!'); location.reload()});
+}
+
+// LOGIN CHECK - OCULTA ADMIN
+fetch('/api/me').then(r=>{
+  if(!r.ok) throw 0;
+  return r.json()
+}).then(u=>{
+  if(u.rol==='admin'){
+    document.getElementById('btnAdmin').style.display='inline-block';
+    document.getElementById('btnLogout').style.display='inline-block';
+    document.getElementById('btnLogin').style.display='none';
+    document.getElementById('btnRegistro').style.display='none';
+  } else if(u.rol==='cliente'){
+    document.getElementById('btnLogout').style.display='inline-block';
+    document.getElementById('btnLogin').style.display='none';
+    document.getElementById('btnRegistro').style.display='none';
+  }
+}).catch(()=>{});
+
+function logout(){ fetch('/api/logout',{method:'POST'}).then(()=>location.reload()) }
 </script>
 </body>
 </html>
