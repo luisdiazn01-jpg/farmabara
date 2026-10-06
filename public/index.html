@@ -1,101 +1,140 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TIENDA WEB - SYSPTV</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Arial;background:#f5f5f5}
-header{background:#000;color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
-header a{color:#fff;text-decoration:none;background:#222;padding:6px 12px;border-radius:6px;margin-left:8px}
-.container{display:flex;gap:15px;padding:15px}
-.productos{flex:3;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.card{background:#fff;padding:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.card b{font-size:13px;display:block;min-height:30px}
-.btn{width:100%;background:#000;color:#fff;border:0;padding:8px;border-radius:6px;margin-top:8px;cursor:pointer}
-.pedido{flex:1;background:#fff;padding:15px;border-radius:8px;height:fit-content;position:sticky;top:10px}
-.pedido input,.pedido select{width:100%;padding:8px;margin:6px 0;border:1px solid #ccc;border-radius:6px}
-.btnEnviar{width:100%;background:#000;color:#fff;padding:12px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
+body{background:#f5f5f7;color:#1d1d1f}
+header{position:sticky;top:0;z-index:20;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);color:#fff;display:flex;justify-content:space-between;align-items:center;padding:14px 24px}
+header b{letter-spacing:.5px;font-size:18px}
+header button{background:#fff;color:#000;border:0;padding:8px 16px;border-radius:999px;font-weight:600;cursor:pointer;margin-left:8px;transition:.2s}
+header button:hover{transform:scale(1.05)}
+.layout{display:grid;grid-template-columns:1fr 380px;gap:24px;max-width:1400px;margin:24px auto;padding:0 20px}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+.card{background:#fff;border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.06);transition:.25s;display:flex;flex-direction:column;justify-content:space-between}
+.card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.12)}
+.card b{font-size:14px;line-height:1.2;min-height:36px}
+.price{font-size:18px;font-weight:800;margin:10px 0}
+.btn{background:#000;color:#fff;border:0;padding:10px;border-radius:12px;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{background:#222}
+.btn:active{transform:scale(.96)}
+.pedido{position:sticky;top:80px;background:#fff;border-radius:24px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.1);height:fit-content}
+.pedido h3{margin-bottom:10px}
+.input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #e5e5e5;margin:6px 0;outline:none}
+.input:focus{border-color:#000}
+.carrito-item{display:flex;justify-content:space-between;align-items:center;background:#f9f9fb;padding:8px 10px;border-radius:10px;margin:6px 0;font-size:13px}
+.del{color:#ff3b30;font-weight:800;cursor:pointer;padding:2px 8px;border-radius:6px}
+.del:hover{background:#ffe0de}
+#total{font-weight:800;font-size:18px;margin:10px 0}
+.badge{background:#000;color:#fff;padding:4px 8px;border-radius:999px;font-size:12px}
 </style>
 </head>
 <body>
 <header>
-  <div><b>TIENDA WEB - SYSPTV</b></div>
-  <div id="authBtns">
-    <a href="/login.html" id="btnLogin">Iniciar Sesión</a>
-    <a href="/registro.html" id="btnRegistro">Registrarse</a>
-    <a href="/admin.html" id="btnAdmin" style="display:none;">Admin</a>
-    <button id="btnLogout" style="display:none; background:#fff; color:#000; border:0; padding:6px 12px; border-radius:6px; cursor:pointer;" onclick="logout()">Salir</button>
-  </div>
+<b>TIENDA WEB - SYSPTV</b>
+<div id="nav">
+  <span id="userName" style="margin-right:10px"></span>
+  <button id="btnLogin" onclick="abrirLogin()">Iniciar Sesión</button>
+  <button id="btnReg" onclick="abrirReg()">Registrarse</button>
+  <button id="btnAdmin" style="display:none" onclick="location.href='/admin.html'">Admin</button>
+  <button id="btnLogout" style="display:none" onclick="logout()">Salir</button>
+</div>
 </header>
 
-<div class="container">
-  <div class="productos" id="productos"></div>
+<div class="layout">
+  <div class="products" id="productos"></div>
   <div class="pedido">
-    <b>Tu Pedido</b>
-    <p>Total: $<span id="total">0</span></p>
-    <div id="listaCarrito" style="font-size:13px;"></div>
-    <hr>
-    <b>Datos de Entrega</b>
-    <input id="nombre" placeholder="Nombre">
-    <input id="tel" placeholder="Tel / WhatsApp">
-    <input id="calle" placeholder="Calle y Número">
-    <input id="colonia" placeholder="Colonia">
-    <input id="ciudad" placeholder="Ciudad">
-    <select id="pago"><option>EFECTIVO</option><option>TRANSFERENCIA</option></select>
-    <div style="background:#eef6ff; padding:8px; font-size:12px; margin-top:8px;">
-      📍 <span id="ubi">Ubicación: obteniendo...</span> <a href="#" onclick="getUbi()">Capturar mi ubicación GPS</a>
+    <h3>🛒 Tu Pedido <span class="badge" id="count">0</span></h3>
+    <div id="total">Total: $0</div>
+    <div id="carrito-lista" style="max-height:220px;overflow:auto"></div>
+    <hr style="margin:14px 0;border:0;border-top:1px solid #eee">
+    <h3>Datos de Entrega</h3>
+    <input class="input" id="nombre" placeholder="Nombre completo">
+    <input class="input" id="tel" placeholder="Tel / WhatsApp">
+    <input class="input" id="calle" placeholder="Calle y Número">
+    <input class="input" id="colonia" placeholder="Colonia">
+    <input class="input" id="ciudad" placeholder="Ciudad">
+    <select class="input" id="pago"><option>EFECTIVO</option><option>TRANSFERENCIA</option></select>
+    <div id="ubic" style="font-size:11px;background:#f0f9ff;padding:10px;border-radius:10px;margin:8px 0">
+      📍 Ubicación: <span id="gps">No capturada</span><br>
+      <a href="#" onclick="capturarGPS();return false">Capturar mi ubicación GPS</a>
     </div>
-    <button class="btnEnviar" onclick="enviarPedido()">ENVIAR PEDIDO</button>
+    <button class="btn" style="width:100%;padding:14px;font-size:15px" onclick="enviarPedido()">ENVIAR PEDIDO</button>
   </div>
 </div>
 
 <script>
-let carrito=[]; let total=0; let ubiTxt="";
-function getUbi(){
-  navigator.geolocation.getCurrentPosition(p=>{
-    ubiTxt = p.coords.latitude+','+p.coords.longitude;
-    document.getElementById('ubi').innerText='Ubicación: '+ubiTxt;
-  });
-}
-getUbi();
-
-fetch('/api/productos').then(r=>r.json()).then(data=>{
-  const cont=document.getElementById('productos');
+let carrito=[], ubicacion=null, productosGlobal=[];
+async function cargarProductos(){
+  const r = await fetch('/api/productos');
+  const data = await r.json();
+  productosGlobal = data.filter(p=>p.Nombre && p.Nombre.trim()!='');
+  const cont = document.getElementById('productos');
   cont.innerHTML='';
-  data.forEach(p=>{
-    cont.innerHTML+=`<div class="card"><b>${p.Nombre||p.nombre}</b><small>${p.Codigo||''}</small><br><b>$${p.Precio||0}</b><button class="btn" onclick="agregar('${p.Nombre}',${p.Precio})">+ Agregar</button></div>`;
+  productosGlobal.forEach(p=>{
+    const precio = p.Precio1 || p.Precio || p.PRECIO || 0;
+    const nombreSafe = p.Nombre.replace(/'/g,"");
+    cont.innerHTML+=`<div class="card"><div><b>${p.Nombre}</b><div style="color:#888;font-size:12px;margin-top:4px">${p.Codigo||''}</div></div><div><div class="price">$${precio}</div><button class="btn" style="width:100%" onclick="agregar('${nombreSafe}',${precio})">+ Agregar</button></div></div>`;
   });
-});
-
-function agregar(nombre,precio){
-  carrito.push({nombre,precio});
-  total+=Number(precio);
-  document.getElementById('total').innerText=total;
-  document.getElementById('listaCarrito').innerHTML+=`<div>${nombre} - $${precio}</div>`;
 }
-function enviarPedido(){
-  fetch('/api/pedidos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:document.getElementById('nombre').value,telefono:document.getElementById('tel').value,calle:document.getElementById('calle').value,colonia:document.getElementById('colonia').value,ciudad:document.getElementById('ciudad').value,pago:document.getElementById('pago').value,ubicacion:ubiTxt,carrito,total})}).then(r=>r.json()).then(d=>{alert('Pedido enviado!'); location.reload()});
+function agregar(nombre, precio){
+  carrito.push({nombre, precio});
+  renderCarrito();
 }
-
-// LOGIN CHECK - OCULTA ADMIN
-fetch('/api/me').then(r=>{
-  if(!r.ok) throw 0;
-  return r.json()
-}).then(u=>{
-  if(u.rol==='admin'){
-    document.getElementById('btnAdmin').style.display='inline-block';
-    document.getElementById('btnLogout').style.display='inline-block';
+function eliminar(i){ carrito.splice(i,1); renderCarrito(); }
+function renderCarrito(){
+  const div = document.getElementById('carrito-lista');
+  let total=0; div.innerHTML='';
+  carrito.forEach((it,i)=>{
+    total+=Number(it.precio);
+    div.innerHTML+=`<div class="carrito-item"><span>${it.nombre}<br><b>$${it.precio}</b></span><span class="del" onclick="eliminar(${i})">✕</span></div>`;
+  });
+  document.getElementById('total').innerText=`Total: $${total.toFixed(2)}`;
+  document.getElementById('count').innerText=carrito.length;
+}
+function capturarGPS(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    ubicacion=`${pos.coords.latitude},${pos.coords.longitude}`;
+    document.getElementById('gps').innerText=ubicacion;
+  });
+}
+async function enviarPedido(){
+  if(!carrito.length) return alert('Carrito vacío');
+  const body={
+    nombre:document.getElementById('nombre').value,
+    telefono:document.getElementById('tel').value,
+    calle:document.getElementById('calle').value,
+    colonia:document.getElementById('colonia').value,
+    ciudad:document.getElementById('ciudad').value,
+    pago:document.getElementById('pago').value,
+    ubicacion,
+    carrito,
+    total:carrito.reduce((s,i)=>s+Number(i.precio),0)
+  };
+  const r = await fetch('/api/pedidos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j = await r.json();
+  if(j.ok){ alert('¡Pedido enviado!'); carrito=[]; renderCarrito(); }
+  else alert('Error:'+j.error);
+}
+async function checkLogin(){
+  try{
+    const r = await fetch('/api/me',{credentials:'include'});
+    if(!r.ok) throw '';
+    const u = await r.json();
+    document.getElementById('userName').innerText='Hola, '+u.nombre;
     document.getElementById('btnLogin').style.display='none';
-    document.getElementById('btnRegistro').style.display='none';
-  } else if(u.rol==='cliente'){
+    document.getElementById('btnReg').style.display='none';
     document.getElementById('btnLogout').style.display='inline-block';
-    document.getElementById('btnLogin').style.display='none';
-    document.getElementById('btnRegistro').style.display='none';
-  }
-}).catch(()=>{});
+    if(u.rol==='admin') document.getElementById('btnAdmin').style.display='inline-block';
+  }catch{}
+}
+function abrirLogin(){ const e=prompt('Email (admin para admin)'); const p=prompt('Password'); if(!e||!p) return; fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p}),credentials:'include'}).then(r=>r.json()).then(j=>{ if(j.rol) location.reload(); else alert(j.error)}); }
+function abrirReg(){ const n=prompt('Nombre'); const e=prompt('Email'); const p=prompt('Password'); const t=prompt('Telefono'); fetch('/api/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:n,email:e,password:p,telefono:t})}).then(r=>r.json()).then(j=>{ if(j.ok) alert('Registrado, ahora inicia sesión'); else alert(j.error)}); }
+function logout(){ fetch('/api/logout',{method:'POST',credentials:'include'}).then(()=>location.reload()); }
 
-function logout(){ fetch('/api/logout',{method:'POST'}).then(()=>location.reload()) }
+cargarProductos(); checkLogin();
 </script>
 </body>
 </html>
