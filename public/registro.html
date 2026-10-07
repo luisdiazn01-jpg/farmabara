@@ -2,27 +2,28 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Crear cuenta - Tienda SysPtv</title>
+<title>Crear cuenta - Boutique BYG</title>
 <style>
-body{font-family:Arial;background:#f4f4f4;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}
-.card{background:#fff;padding:30px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,.1);width:100%;max-width:380px}
-h2{margin:0 0 10px} input{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box}
-button{width:100%;padding:12px;background:#111;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px}
-button:hover{background:#000}.link{margin-top:15px;text-align:center;font-size:14px} a{color:#111} #msg{color:red;font-size:13px;margin-top:10px}
+body{font-family:Arial;background:#FFF8F9;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}
+.card{background:#fff;padding:30px;border-radius:20px;box-shadow:0 5px 20px rgba(0,0,0,.1);width:100%;max-width:380px}
+h2{margin:0 0 10px;font-family:Playfair Display,serif} input{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:12px;box-sizing:border-box;background:#F8F5F5}
+button{width:100%;padding:12px;background:#0E0E0E;color:#fff;border:none;border-radius:999px;font-weight:bold;cursor:pointer;margin-top:10px}
+#msg{color:#e11d48;font-size:13px;margin-top:10px;text-align:center}
+.link{margin-top:15px;text-align:center;font-size:13px}
 </style>
 </head>
 <body>
 <div class="card">
-<h2>Crear cuenta</h2><p style="color:#666;font-size:14px">Regístrate con tu WhatsApp</p>
-<input id="nombre" placeholder="Nombre completo">
-<input id="telefono" placeholder="WhatsApp 10 dígitos" maxlength="10" type="tel">
-<input id="direccion" placeholder="Dirección (colonia, calle)">
-<input id="pass" type="password" placeholder="Contraseña">
-<input id="pass2" type="password" placeholder="Repite contraseña">
+<h2>Crear cuenta ✨</h2><p style="color:#666;font-size:13px">Boutique BYG - Barrio Elegancia</p>
+<input id="nombre" placeholder="Nombre completo *">
+<input id="telefono" placeholder="WhatsApp 10 dígitos *" maxlength="10" type="tel">
+<input id="direccion" placeholder="Dirección *">
+<input id="pass" type="password" placeholder="Contraseña *">
+<input id="pass2" type="password" placeholder="Repite contraseña *">
 <button onclick="registrar()">Crear cuenta</button>
 <p id="msg"></p>
 <div class="link">¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a></div>
-<div class="link"><a href="/">← Volver a la tienda</a></div>
+<div class="link"><a href="/">← Volver a boutique</a></div>
 </div>
 <script>
 async function registrar(){
@@ -32,13 +33,17 @@ async function registrar(){
  const pass=document.getElementById('pass').value;
  const pass2=document.getElementById('pass2').value;
  const msg=document.getElementById('msg');
- if(!nombre||!telefono||!pass) return msg.innerText='Faltan datos';
+ if(!nombre||!telefono||!direccion||!pass) return msg.innerText='Faltan datos *';
  if(telefono.length<10) return msg.innerText='Teléfono debe ser 10 dígitos';
  if(pass!==pass2) return msg.innerText='Contraseñas no coinciden';
+ if(pass.length<4) return msg.innerText='Contraseña mínimo 4 caracteres';
  msg.innerText='Registrando...';
- const r=await fetch('/api/clientes/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono,nombre,password:pass,direccion})});
- const j=await r.json();
- if(!r.ok) msg.innerText=j.error; else { alert('Cuenta creada! Ya puedes pedir'); location.href='/'; }
+ try{
+  const r=await fetch('/api/cliente/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono,nombre,password:pass,direccion})});
+  const j=await r.json();
+  if(!r.ok || !j.ok) msg.innerText=j.error||'Error al registrar';
+  else { localStorage.setItem('cliente_v2', JSON.stringify(j.cliente)); alert('¡Cuenta creada! Bienvenida a Boutique BYG ✨'); location.href='/'; }
+ }catch(e){ msg.innerText='Error: '+e.message; }
 }
 </script>
 </body>
