@@ -6,30 +6,139 @@
 <title>Boutique B&G - Barrio Elegancia</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<style>*{font-family:Inter,sans-serif}.no-scrollbar::-webkit-scrollbar{display:none}</style>
 </head>
-<body class="bg-[#FFF8F9] text-slate-900">
+<body class="bg-[#FFF8F9]">
 <header class="sticky top-0 z-40 bg-[#0E0E0E] text-[#F5E6C8] px-4 py-3.5 flex justify-between items-center">
 <b id="nombre-tienda" style="font-family:'Playfair Display'" class="text-[22px]">Boutique B&G</b>
 <div class="flex gap-2 items-center">
 <span id="user-label" class="hidden text-[11px]"></span>
 <button id="btn-login-header" onclick="abrirLogin()" class="bg-white text-black px-4 py-1.5 rounded-full text-[12px] font-bold">Iniciar</button>
-<span id="logout" onclick="logout()" class="hidden text-[11px] underline">Salir</span>
-<div class="bg-white text-black w-9 h-9 grid place-items-center rounded-full">🛒<span id="count" class="absolute -top-1 -right-1 bg-[#0F5C4A] text-white text-[10px] min-w-[18px] h-[18px] grid place-items-center rounded-full">0</span></div>
+<span id="logout" onclick="logout()" class="hidden text-[11px] underline cursor-pointer">Salir</span>
+<div class="relative bg-white text-black w-9 h-9 grid place-items-center rounded-full">🛒<span id="count" class="absolute -top-1 -right-1 bg-[#0F5C4A] text-white text-[10px] min-w-[18px] h-[18px] grid place-items-center rounded-full">0</span></div>
 </div>
 </header>
+
 <div class="max-w-[1300px] mx-auto px-4 pt-4">
-<div class="bg-white rounded-[24px] p-3 shadow"><div class="relative"><span class="absolute left-4 top-3.5 opacity-40">🔍</span><input id="buscador" class="w-full bg-[#F8F5F5] rounded-full py-3.5 pl-11 pr-4 text-[14px] outline-none" placeholder="Buscar ropa, accesorios, estilo..."></div><div class="flex gap-2 mt-3 overflow-auto"><button class="bg-[#0F5C4A] text-white px-4 py-2 rounded-full text-[13px]">✨ Todo</button><button class="bg-white border px-4 py-2 rounded-full text-[13px]">Nuevo</button><button class="bg-white border px-4 py-2 rounded-full text-[13px]">Vestidos</button><button class="bg-[#FFE4E8] px-4 py-2 rounded-full text-[13px]">Sale</button></div></div>
-<div id="banners" class="mt-4 hidden"><div id="banner-inner" class="rounded-[22px] h-[150px] flex overflow-x-auto"></div><div id="banner-dots" class="flex justify-center gap-1.5 mt-2"></div></div>
+<div class="bg-white rounded-[24px] p-3 shadow border border-black/5">
+<div class="relative"><span class="absolute left-4 top-3.5 opacity-40">🔍</span><input id="buscador" class="w-full bg-[#F8F5F5] rounded-full py-3.5 pl-11 pr-4 text-[14px] outline-none" placeholder="Buscar ropa, accesorios, estilo..."></div>
+<div class="flex gap-2 mt-3 overflow-auto no-scrollbar"><button class="shrink-0 bg-[#0F5C4A] text-white px-4 py-2 rounded-full text-[13px]">✨ Todo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Nuevo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Vestidos</button><button class="shrink-0 bg-[#FFE4E8] border px-4 py-2 rounded-full text-[13px]">Sale</button></div>
 </div>
-<div class="max-w-[1300px] mx-auto px-4 py-5 grid lg:grid-cols-[1fr_380px] gap-5"><div><h2 class="font-bold mb-3">Productos Destacados</h2><div id="productos" class="grid grid-cols-2 md:grid-cols-3 gap-3">Cargando...</div></div><div class="lg:sticky top-[76px] h-fit"><div class="bg-white rounded-[24px] p-5 shadow"><h3 class="font-bold">🛍️ Tu Pedido</h3><div id="carrito-lista" class="max-h-[260px] overflow-auto my-3 text-[13px]"></div><div id="total" class="font-extrabold text-[20px] border-t pt-3">Total: $0.00</div><input id="nombre" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-3 text-[13px]" placeholder="Nombre *"><input id="telefono" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 text-[13px]" placeholder="WhatsApp *"><input id="direccion" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 text-[13px]" placeholder="Dirección *"><button onclick="obtenerUbicacion()" class="w-full bg-[#F1F5F9] border border-dashed border-[#0F5C4A]/40 text-[#0F5C4A] py-3 rounded-xl text-[13px] mt-2">📍 GPS Pedido</button><div id="loc-status" class="text-[11px] text-slate-500">Sin ubicación</div><button id="btn-pedido" onclick="hacerPedido()" class="w-full bg-[#0E0E0E] text-white py-4 rounded-full font-bold mt-3">HACER PEDIDO ✨</button><p id="msg" class="text-[12px] text-center mt-2"></p></div></div></div>
-<div id="login-modal" onclick="if(event.target==this) cerrarLogin()" class="fixed inset-0 bg-black/60 z-[999] hidden items-center justify-center p-4"><div class="bg-white w-full max-w-[380px] rounded-[28px] p-6 relative"><span onclick="cerrarLogin()" class="absolute right-5 top-4 w-8 h-8 grid place-items-center bg-black/5 rounded-full cursor-pointer">✕</span><h3 id="login-title" class="font-bold text-[20px]">Iniciar Sesión</h3><input id="l-tel" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-4" placeholder="WhatsApp"><input id="l-pass" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2" type="password" placeholder="Contraseña"><input id="l-nom" class="hidden w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2" placeholder="Nombre completo"><input id="l-dir" class="hidden w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2" placeholder="Dirección"><button class="w-full bg-black text-white py-3 rounded-full mt-3" onclick="doLogin()">Entrar</button><button id="btn-reg" class="hidden w-full bg-[#FFE4E8] py-3 rounded-full mt-2" onclick="doRegistro()">Crear cuenta</button><p id="toggle-text" class="text-[12px] text-center mt-3 underline cursor-pointer" onclick="toggleModo()">¿No tienes cuenta? Regístrate</p><p id="login-msg" class="text-[12px] text-center mt-2"></p></div></div>
+<div id="banners" class="mt-4 hidden"><div id="banner-inner" class="rounded-[22px] h-[150px] flex overflow-x-auto snap-x no-scrollbar"></div><div id="banner-dots" class="flex justify-center gap-1.5 mt-2"></div></div>
+</div>
+
+<div class="max-w-[1300px] mx-auto px-4 py-5 grid lg:grid-cols-[1fr_380px] gap-5">
+<div><div class="flex justify-between items-center mb-3"><h2 class="font-bold text-[18px]">Productos Destacados</h2><span id="prod-count" class="text-[11px] text-slate-400"></span></div><div id="productos" class="grid grid-cols-2 md:grid-cols-3 gap-3">Cargando...</div></div>
+<div class="lg:sticky lg:top-[76px] h-fit"><div class="bg-white rounded-[24px] p-5 shadow border"><h3 class="font-bold">🛍️ Tu Pedido</h3><div id="carrito-lista" class="max-h-[260px] overflow-auto my-3 text-[13px]"><small class="text-slate-400">Carrito vacío</small></div><div id="total" class="font-extrabold text-[20px] border-t pt-3">Total: $0.00</div><input id="nombre" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-3 text-[13px] outline-none" placeholder="Nombre *"><input id="telefono" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 text-[13px] outline-none" placeholder="WhatsApp *"><input id="direccion" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 text-[13px] outline-none" placeholder="Dirección *"><button onclick="obtenerUbicacion()" class="w-full bg-[#F1F5F9] border border-dashed border-[#0F5C4A]/40 text-[#0F5C4A] py-3 rounded-xl text-[13px] font-semibold mt-2">📍 GPS Pedido</button><div id="loc-status" class="text-[11px] text-slate-500 mt-1">Sin ubicación</div><button id="btn-pedido" onclick="hacerPedido()" class="w-full bg-[#0E0E0E] text-white py-4 rounded-full font-bold mt-3">HACER PEDIDO ✨</button><p id="msg" class="text-[12px] text-center mt-2"></p></div></div>
+</div>
+
+<div id="login-modal" onclick="if(event.target==this) cerrarLogin()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] hidden items-center justify-center p-4"><div class="bg-white w-full max-w-[380px] rounded-[28px] p-6 relative"><span onclick="cerrarLogin()" class="absolute right-5 top-4 w-8 h-8 grid place-items-center bg-black/5 rounded-full cursor-pointer">✕</span><h3 id="login-title" class="font-bold text-[20px]">Iniciar Sesión</h3><input id="l-tel" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-4 outline-none" placeholder="WhatsApp o admin" onkeydown="if(event.key==='Enter') enterLogin()"><input id="l-pass" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 outline-none" type="password" placeholder="Contraseña" onkeydown="if(event.key==='Enter') enterLogin()"><input id="l-nom" class="hidden w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 outline-none" placeholder="Nombre completo"><input id="l-dir" class="hidden w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 outline-none" placeholder="Dirección"><button class="w-full bg-[#0E0E0E] text-white py-3.5 rounded-full font-bold mt-3" onclick="doLogin()">Entrar</button><button id="btn-reg" class="hidden w-full bg-[#FFE4E8] text-black py-3.5 rounded-full font-bold mt-2" onclick="doRegistro()">Crear cuenta</button><p id="toggle-text" class="text-[12px] text-center mt-3 underline cursor-pointer" onclick="toggleModo()">¿No tienes cuenta? Regístrate</p><p id="login-msg" class="text-[12px] text-center mt-2"></p></div></div>
+
 <script>
 let todos=[], carrito=[], myLat=null, myLng=null, modoRegistro=false;
 let clienteActual = JSON.parse(localStorage.getItem('cliente_v2')||sessionStorage.getItem('cliente_v2')||'null');
 function abrirLogin(){ document.getElementById('login-modal').style.display='flex'; }
 function cerrarLogin(){ document.getElementById('login-modal').style.display='none'; }
-function checkAuth(){ if(clienteActual && clienteActual.CVE_CTE!=='ADMIN'){ document.getElementById('user-label').innerText=clienteActual.DES_CTE||''; document.getElementById('user-label').classList.remove('hidden'); document.getElementById('nombre').value=clienteActual.DES_CTE||''; document.getElementById('telefono').value=clienteActual.CVE_CTE||''; document.getElementById('direccion').value=clienteActual.DIRECCION||''; document.getElementById('btn-login-header').style.display='none'; document.getElementById('logout').style.display='inline'; document.getElementById('logout').classList.remove('hidden'); } else { if(clienteActual && clienteActual.CVE_CTE==='ADMIN'){ localStorage.removeItem('cliente_v2'); sessionStorage.removeItem('cliente_v2'); clienteActual=null; } } }
-function toggleModo(){ modoRegistro=!modoRegistro; document.getElementById('l-nom').classList.toggle('hidden',!modoRegistro); document.getElementById('l-dir').classList.toggle('hidden',!modoRegistro); document.getElementById('btn-reg').classList.toggle('hidden',!modoRegistro); }
+function checkAuth(){
+  if(clienteActual && clienteActual.CVE_CTE!=='ADMIN'){
+    document.getElementById('user-label').innerText=clienteActual.DES_CTE||'';
+    document.getElementById('user-label').classList.remove('hidden');
+    document.getElementById('nombre').value=clienteActual.DES_CTE||'';
+    document.getElementById('telefono').value=clienteActual.CVE_CTE||'';
+    document.getElementById('direccion').value=clienteActual.DIRECCION||'';
+    document.getElementById('btn-login-header').style.display='none';
+    document.getElementById('logout').style.display='inline';
+    document.getElementById('logout').classList.remove('hidden');
+  }
+}
+function toggleModo(){ modoRegistro=!modoRegistro; document.getElementById('l-nom').classList.toggle('hidden',!modoRegistro); document.getElementById('l-dir').classList.toggle('hidden',!modoRegistro); document.getElementById('btn-reg').classList.toggle('hidden',!modoRegistro); document.getElementById('login-title').innerText=modoRegistro?'Crear cuenta':'Iniciar Sesión'; }
 function enterLogin(){ if(modoRegistro) doRegistro(); else doLogin(); }
-async function doLogin(){ const tel=document.getElementById('l-tel').value.trim(); const pass=document.getElementById('l-pass').value.trim(); const r=await fetch('/api/cliente/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono:tel,password:pass})}).then(r=>r.json().then(j=>({status:r.status, body:j}))); if(r.body.ok){ if(r.body.esAdmin){ sessionStorage.setItem('admin_ok','1'); window.location.href='/admin.html'; return; } localStorage.setItem('cliente_v2', JSON.stringify(r.body.cliente)); sessionStorage.setItem('cliente_v2', JSON.stringify(r.body.cliente)); location.reload(); } else { document.getElementById('login-msg').innerText='❌ '+(r.body.error||'Error'); } }
-async function doRegistro(){ const r=await fetch('/api/cliente/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:document.getElementById('l-nom').value, telefono:document.getElementById('l-tel').value, password:document.getElementById('l-pass').value, direccion:document.getElementById('l-dir').value})}).then(r=>r.json()); if
+async function doLogin(){
+  const tel=document.getElementById('l-tel').value.trim(); const pass=document.getElementById('l-pass').value.trim();
+  if(!tel||!pass) return alert('Falta usuario');
+  const r=await fetch('/api/cliente/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono:tel,password:pass})}).then(r=>r.json().then(j=>({status:r.status, body:j})));
+  if(r.body.ok){ if(r.body.esAdmin){ sessionStorage.setItem('admin_ok','1'); window.location.href='/admin.html'; return; } localStorage.setItem('cliente_v2', JSON.stringify(r.body.cliente)); sessionStorage.setItem('cliente_v2', JSON.stringify(r.body.cliente)); location.reload(); } else { document.getElementById('login-msg').innerText='❌ '+(r.body.error||'Error'); }
+}
+async function doRegistro(){ const r=await fetch('/api/cliente/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:document.getElementById('l-nom').value, telefono:document.getElementById('l-tel').value, password:document.getElementById('l-pass').value, direccion:document.getElementById('l-dir').value})}).then(r=>r.json()); if(r.ok){ alert('Registrado! Ahora entra'); toggleModo(); } else alert(r.error); }
+function logout(){ localStorage.removeItem('cliente_v2'); sessionStorage.removeItem('cliente_v2'); location.reload(); }
+async function loadBanners(){
+  try{
+    const b=await fetch('/api/banners').then(r=>r.json());
+    if(!b.length) return;
+    document.getElementById('banners').style.display='block';
+    const inner=document.getElementById('banner-inner'); const dots=document.getElementById('banner-dots');
+    inner.innerHTML=b.map(x=>`<div class="min-w-full h-[150px] flex items-center justify-between px-6 text-white snap-start" style="background: linear-gradient(90deg, #0E0E0E 0%, #0F5C4A 100%)"><div><div class="bg-white/15 inline-block px-3 py-1 rounded-full text-[10px] mb-2">🔥 PROMO</div><h2 class="font-serif text-[20px] max-w-[220px] leading-tight">${x.TITULO||'Oferta'}</h2></div><img src="${x.IMAGEN}" class="h-[110px] rounded-xl object-cover max-w-[45%]" onerror="this.style.display='none'"></div>`).join('');
+    dots.innerHTML=b.map((_,i)=>`<div class="w-2 h-2 rounded-full ${i==0?'bg-[#0F5C4A]':'bg-slate-300'}"></div>`).join('');
+    let idx=0; setInterval(()=>{ idx=(idx+1)%b.length; inner.scrollTo({left: idx*inner.clientWidth, behavior:'smooth'}); },4000);
+  }catch{}
+}
+async function init(){
+  checkAuth(); loadBanners();
+  try{
+    const cfg=await fetch('/api/config').then(r=>r.json());
+    if(cfg.NOMBRE_TIENDA) document.getElementById('nombre-tienda').innerText=cfg.NOMBRE_TIENDA;
+  }catch{}
+  try{
+    const res=await fetch('/api/productos');
+    todos=await res.json();
+    document.getElementById('prod-count').innerText = todos.length + ' productos';
+    renderProductos(todos);
+  }catch(e){
+    document.getElementById('productos').innerHTML = 'Error cargando: '+e.message;
+  }
+}
+function renderProductos(lista){
+  const div=document.getElementById('productos');
+  div.innerHTML='';
+  if(!lista.length){ div.innerHTML='<div class=text-slate-400>Sin productos</div>'; return; }
+  const frag=document.createDocumentFragment();
+  lista.slice(0,120).forEach(p=>{
+    const cveRaw=(p.cve||'').trim();
+    const cveUpper=cveRaw.toUpperCase().replace(/\s+/g,'');
+    const pre=Number(p.precio||0);
+    const el=document.createElement('div');
+    el.className="bg-white rounded-[20px] overflow-hidden border border-black/5 shadow-[0_6px_20px_rgba(0,0,0,.05)]";
+    const tag = pre>80? 'Premium' : 'Nuevo';
+    const tagClass = pre>80? 'bg-[#FFE4E8] text-black' : 'bg-black text-white';
+    el.innerHTML=`<div class="h-[150px] bg-[#F8F5F5] flex items-center justify-center overflow-hidden relative"><img src="/img/${encodeURIComponent(cveUpper)}.jpg" loading="lazy" class="w-full h-full object-cover" onerror="this.style.display='none'"><span class="absolute top-2 left-2 text-[10px] px-2.5 py-1 rounded-full font-semibold ${tagClass}">${tag}</span></div><div class="p-3"><div class="text-[12.5px] font-semibold leading-tight h-[36px] overflow-hidden">${p.nombre||cveRaw}</div><div class="text-[10px] text-slate-400 mt-1">${cveRaw}</div><div class="flex justify-between items-center mt-2"><div class="text-[#0F5C4A] font-extrabold text-[15px]">$${pre.toFixed(2)}</div><div class="text-[#FFB4C1] text-[11px]">★★★★★</div></div></div>`;
+    const btn=document.createElement('button');
+    btn.className="w-full bg-[#0E0E0E] text-white py-2.5 rounded-full text-[12px] font-bold mt-2";
+    btn.innerText="Agregar";
+    btn.onclick=()=>agregar(cveRaw, p.nombre||cveRaw, pre);
+    el.querySelector('.p-3').appendChild(btn);
+    frag.appendChild(el);
+  });
+  div.appendChild(frag);
+}
+function agregar(articulo,nombre,precio){ let f=carrito.find(x=>x.articulo===articulo); if(f) f.cantidad++; else carrito.push({articulo, nombre, precio:Number(precio), cantidad:1}); renderCarrito(); }
+function renderCarrito(){
+  const div=document.getElementById('carrito-lista'); let total=0; div.innerHTML='';
+  if(carrito.length===0) div.innerHTML='<small class=text-slate-400>Carrito vacío - agrega tu flow</small>';
+  carrito.forEach((it,i)=>{
+    const sub=it.precio*it.cantidad; total+=sub;
+    const row=document.createElement('div'); row.className="flex justify-between items-center py-2.5 border-b border-black/5";
+    row.innerHTML=`<div class="flex-1"><div class="font-semibold text-[12.5px]">${it.nombre}</div><div class="text-[10px] text-slate-400">${it.articulo}</div><div class="text-[#0F5C4A] font-bold text-[12px]">$${it.precio.toFixed(2)} x ${it.cantidad}</div></div>`;
+    const ctrl=document.createElement('div'); ctrl.className="flex items-center gap-1.5";
+    ctrl.innerHTML=`<button class="w-7 h-7 rounded-full bg-black/5">-</button><b class="text-[12px] w-4 text-center">${it.cantidad}</b><button class="w-7 h-7 rounded-full bg-black/5">+</button><span class="cursor-pointer ml-1">✕</span>`;
+    ctrl.children[0].onclick=()=>cambiarCant(i,-1); ctrl.children[2].onclick=()=>cambiarCant(i,1); ctrl.children[3].onclick=()=>{carrito.splice(i,1);renderCarrito()};
+    row.appendChild(ctrl); div.appendChild(row);
+  });
+  document.getElementById('total').innerText=`Total: $${total.toFixed(2)}`;
+  document.getElementById('count').innerText=carrito.reduce((s,p)=>s+p.cantidad,0);
+}
+function cambiarCant(i,d){ carrito[i].cantidad+=d; if(carrito[i].cantidad<=0) carrito.splice(i,1); renderCarrito(); }
+document.getElementById('buscador').addEventListener('input', e=>{ const q=e.target.value.toLowerCase(); const f=todos.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.cve||'').toLowerCase().includes(q)); renderProductos(f); });
+function obtenerUbicacion(){ const st=document.getElementById('loc-status'); st.innerText='Obteniendo GPS...'; navigator.geolocation.getCurrentPosition(pos=>{ myLat=pos.coords.latitude.toFixed(6); myLng=pos.coords.longitude.toFixed(6); st.innerHTML=`✅ ${myLat}, ${myLng} <a href="https://maps.google.com/?q=${myLat},${myLng}" target="_blank" class="underline">Ver</a>`; }, err=>{ st.innerText='Error GPS: '+err.message; }); }
+async function hacerPedido(){
+  if(carrito.length===0) return alert('Carrito vacío');
+  if(!clienteActual){ abrirLogin(); return alert('Inicia sesión'); }
+  const nombre=document.getElementById('nombre').value.trim(); const telefono=document.getElementById('telefono').value.trim(); const direccion=document.getElementById('direccion').value.trim();
+  if(!nombre||!telefono||!direccion) return alert('Falta datos');
+  document.getElementById('btn-pedido').disabled=true; document.getElementById('msg').innerText='Guardando...';
+  try{ const res=await fetch('/api/pedidos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre, telefono, direccion, lat:myLat, lng:myLng, total: carrito.reduce((s,p)=>s+p.precio*p.cantidad,0), productos: carrito.map(p=>({cve:p.articulo, cantidad:p.cantidad, precio:p.precio}))})}); const j=await res.json(); if(j.ok){ document.getElementById('msg').innerHTML=`✅ Pedido #${j.folio} $${j.total.toFixed(2)}`; carrito=[]; renderCarrito(); } else document.getElementById('msg').innerText='❌ '+j.error; }catch(e){ document.getElementById('msg').innerText='❌ '+e.message; }
+  document.getElementById('btn-pedido').disabled=false;
+}
+init();
+</script>
+</body>
+</html>
