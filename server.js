@@ -32,18 +32,20 @@ async function getConfigDB(){
   try{
     const p=await getPool();
     await p.request().query(`IF OBJECT_ID('CFG_TIENDA_WEB') IS NULL CREATE TABLE CFG_TIENDA_WEB (ID INT PRIMARY KEY, ID_SUCURSAL SMALLINT, ID_EMP VARCHAR(20), NOMBRE_TIENDA VARCHAR(100), WHATSAPP_REPARTO VARCHAR(20))`);
-    await p.request().query(`IF NOT EXISTS(SELECT 1 FROM CFG_TIENDA_WEB WHERE ID=1) INSERT INTO CFG_TIENDA_WEB VALUES (1,1,'17072026','TIENDA WEB - SYSPTV','')`);
+    await p.request().query(`IF NOT EXISTS(SELECT 1 FROM CFG_TIENDA_WEB WHERE ID=1) INSERT INTO CFG_TIENDA_WEB VALUES (1,1,'07082026','BOUTIQUE BYG','')`);
     const r=await p.request().query(`SELECT * FROM CFG_TIENDA_WEB WHERE ID=1`);
     return r.recordset[0];
-  }catch{ return {ID_SUCURSAL:1, ID_EMP:'17072026', NOMBRE_TIENDA:'TIENDA WEB - SYSPTV'}; }
+  }catch{ return {ID_SUCURSAL:1, ID_EMP:'07082026', NOMBRE_TIENDA:'BOUTIQUE BYG'}; }
 }
 async function ensureTables(){
   try{
     const p=await getPool();
     await p.request().query(`IF COL_LENGTH('TH_PEDIDO','LAT') IS NULL ALTER TABLE TH_PEDIDO ADD LAT VARCHAR(20) NULL`);
     await p.request().query(`IF COL_LENGTH('TH_PEDIDO','LNG') IS NULL ALTER TABLE TH_PEDIDO ADD LNG VARCHAR(20) NULL`);
-    await p.request().query(`IF COL_LENGTH('C_CLIENTE','PASSWORD') IS NULL ALTER TABLE C_CLIENTE ADD PASSWORD VARCHAR(100) NULL; IF COL_LENGTH('C_CLIENTE','DIRECCION') IS NULL ALTER TABLE C_CLIENTE ADD DIRECCION VARCHAR(200) NULL; IF COL_LENGTH('C_CLIENTE','LAT') IS NULL ALTER TABLE C_CLIENTE ADD LAT VARCHAR(20) NULL; IF COL_LENGTH('C_CLIENTE','LNG') IS NULL ALTER TABLE C_CLIENTE ADD LNG VARCHAR(20) NULL;`);
-    await p.request().query(`IF OBJECT_ID('WEB_BANNERS') IS NULL CREATE TABLE WEB_BANNERS (ID INT IDENTITY(1,1) PRIMARY KEY, TITULO VARCHAR(100), IMAGEN VARCHAR(200), ACTIVO BIT DEFAULT 1, FECHA DATETIME DEFAULT GETDATE())`);
+    await p.request().query(`IF COL_LENGTH('C_CLIENTE','PASSWORD') IS NULL ALTER TABLE C_CLIENTE ADD PASSWORD VARCHAR(100) NULL; IF COL_LENGTH('C_CLIENTE','DIRECCION') IS NULL ALTER TABLE C_CLIENTE ADD DIRECCION VARCHAR(200) NULL; IF COL_LENGTH('C_CLIENTE','LAT') IS NULL ALTER TABLE C_CLIENTE ADD LAT VARCHAR(20) NULL; IF COL_LENGTH('C_CLIENTE','LNG') IS NULL ALTER TABLE C_CLIENTE ADD LNG VARCHAR(20) NULL; IF COL_LENGTH('C_CLIENTE','EMPRESA') IS NULL ALTER TABLE C_CLIENTE ADD EMPRESA VARCHAR(20) NULL;`);
+    await p.request().query(`IF COL_LENGTH('CRART','EMPRESA') IS NULL ALTER TABLE CRART ADD EMPRESA VARCHAR(20) NULL;`);
+    await p.request().query(`IF OBJECT_ID('WEB_BANNERS') IS NULL CREATE TABLE WEB_BANNERS (ID INT IDENTITY(1,1) PRIMARY KEY, TITULO VARCHAR(100), IMAGEN VARCHAR(200), ACTIVO BIT DEFAULT 1, FECHA DATETIME DEFAULT GETDATE(), EMPRESA VARCHAR(20) NULL)`);
+    await p.request().query(`IF COL_LENGTH('WEB_BANNERS','EMPRESA') IS NULL ALTER TABLE WEB_BANNERS ADD EMPRESA VARCHAR(20) NULL`);
   }catch(e){ console.log('ensureTables', e.message) }
 }
 ensureTables();
@@ -59,32 +61,32 @@ app.post('/api/admin/config', async(req,res)=>{
 
 app.get('/api/productos', async(req,res)=>{
   try{
-    const p=await getPool();
-    const r=await p.request().query(`SELECT TOP 500 RTRIM(LTRIM(Articulo)) as cve, RTRIM(LTRIM(nombre)) as nombre, CAST(ISNULL(Precio,0) as decimal(18,2)) as precio, 10 as existencia FROM CRART WHERE LTRIM(RTRIM(Articulo))<>'' AND LTRIM(RTRIM(ISNULL(nombre,'')))<>'' AND ISNULL(Precio,0)>0 AND nombre NOT LIKE '%null%' ORDER BY nombre`);
+    const p=await getPool(); const cfg=await getConfigDB();
+    const r=await p.request().input('emp', sql.VarChar(20), String(cfg.ID_EMP).trim()).query(`SELECT TOP 500 RTRIM(LTRIM(Articulo)) as cve, RTRIM(LTRIM(nombre)) as nombre, CAST(ISNULL(Precio,0) as decimal(18,2)) as precio, 10 as existencia FROM CRART WHERE EMPRESA=@emp AND LTRIM(RTRIM(Articulo))<>'' AND LTRIM(RTRIM(ISNULL(nombre,'')))<>'' AND ISNULL(Precio,0)>0 AND nombre NOT LIKE '%null%' ORDER BY nombre`);
     res.json(r.recordset);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
 app.get('/api/banners', async(req,res)=>{
-  try{ const p=await getPool(); const r=await p.request().query(`SELECT TOP 5 * FROM WEB_BANNERS WHERE ACTIVO=1 ORDER BY ID DESC`); res.json(r.recordset); }catch(e){ res.json([]) }
+  try{ const p=await getPool(); const cfg=await getConfigDB(); const r=await p.request().input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT TOP 5 * FROM WEB_BANNERS WHERE ACTIVO=1 AND EMPRESA=@emp ORDER BY ID DESC`); res.json(r.recordset); }catch(e){ res.json([]) }
 });
 app.get('/api/admin/banners', async(req,res)=>{
-  try{ const p=await getPool(); const r=await p.request().query(`SELECT * FROM WEB_BANNERS ORDER BY ID DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
+  try{ const p=await getPool(); const cfg=await getConfigDB(); const r=await p.request().input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT * FROM WEB_BANNERS WHERE EMPRESA=@emp ORDER BY ID DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
 });
 app.post('/api/admin/banners', async(req,res)=>{
-  try{ const p=await getPool(); await p.request().input('tit', sql.VarChar(100), req.body.titulo||'').input('img', sql.VarChar(200), req.body.imagen||'').query(`INSERT INTO WEB_BANNERS (TITULO, IMAGEN, ACTIVO) VALUES (@tit, @img, 1)`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
+  try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('tit', sql.VarChar(100), req.body.titulo||'').input('img', sql.VarChar(200), req.body.imagen||'').input('emp', sql.VarChar(20), cfg.ID_EMP).query(`INSERT INTO WEB_BANNERS (TITULO, IMAGEN, ACTIVO, EMPRESA) VALUES (@tit, @img, 1, @emp)`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 app.delete('/api/admin/banners/:id', async(req,res)=>{
-  try{ const p=await getPool(); await p.request().query(`DELETE FROM WEB_BANNERS WHERE ID=${parseInt(req.params.id)}`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
+  try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
 app.post('/api/cliente/registro', async(req,res)=>{
   try{
-    const p=await getPool();
+    const p=await getPool(); const cfg=await getConfigDB();
     const {nombre, telefono, password, direccion}=req.body;
     const tel=telefono.replace(/\D/g,'').slice(-10);
-    await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('pass', sql.VarChar(100), password).input('dir', sql.VarChar(200), direccion)
-.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION) VALUES (@cve,@des,@pass,@dir) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve`);
+    await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('pass', sql.VarChar(100), password).input('dir', sql.VarChar(200), direccion).input('emp', sql.VarChar(20), String(cfg.ID_EMP).trim())
+.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION,EMPRESA) VALUES (@cve,@des,@pass,@dir,@emp) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
     res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}) }
 });
@@ -96,8 +98,8 @@ app.post('/api/cliente/login', async(req,res)=>{
     if(tel.toLowerCase()==='admin' && pass==='Admin2026!'){
       return res.json({ok:true, esAdmin:true, cliente:{CVE_CTE:'ADMIN', DES_CTE:'ADMINISTRADOR', DIRECCION:'ADMIN'}});
     }
-    const p=await getPool();
-    const r=await p.request().input('cve', sql.VarChar(20), tel).query(`SELECT * FROM C_CLIENTE WHERE CVE_CTE=@cve`);
+    const p=await getPool(); const cfg=await getConfigDB();
+    const r=await p.request().input('cve', sql.VarChar(20), tel).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT * FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
     if(r.recordset.length===0) return res.status(404).json({error:'No existe, regístrate'});
     if(r.recordset[0].PASSWORD && r.recordset[0].PASSWORD!==pass) return res.status(401).json({error:'Contraseña incorrecta'});
     res.json({ok:true, cliente:r.recordset[0]});
@@ -107,25 +109,24 @@ app.post('/api/cliente/login', async(req,res)=>{
 app.get('/api/admin/pedidos', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
-    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
+    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
     res.json(r.recordset);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 app.get('/api/admin/clientes', async(req,res)=>{
-  try{ const p=await getPool(); const r=await p.request().query(`SELECT TOP 100 * FROM C_CLIENTE ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
+  try{ const p=await getPool(); const cfg=await getConfigDB(); const r=await p.request().input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT TOP 100 * FROM C_CLIENTE WHERE EMPRESA=@emp ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
 });
 app.post('/api/admin/login', (req,res)=>{ if(req.body.user==='admin' && req.body.pass==='Admin2026!') res.json({ok:true}); else res.status(401).json({error:'No'}); });
 app.get('/api/admin/pedido/:folio', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
     const folio=parseInt(req.params.folio);
-    const h=await p.request().query(`SELECT th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, th.CVE_CTE, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE WHERE th.NUM_PED=${folio} AND th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}'`);
-    const d=await p.request().query(`SELECT td.CAN_PRO, td.CVE_PRO, td.PRE_PRO, ISNULL(RTRIM(LTRIM(cr.nombre)),'') as nombre FROM TD_PEDIDO td LEFT JOIN CRART cr ON LTRIM(RTRIM(cr.Articulo))=LTRIM(RTRIM(td.CVE_PRO)) WHERE td.NUM_PED=${folio} AND td.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND td.ID_EMP='${cfg.ID_EMP}' ORDER BY td.NUM_PAR`);
+    const h=await p.request().query(`SELECT th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, th.CVE_CTE, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.NUM_PED=${folio} AND th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}'`);
+    const d=await p.request().query(`SELECT td.CAN_PRO, td.CVE_PRO, td.PRE_PRO, ISNULL(RTRIM(LTRIM(cr.nombre)),'') as nombre FROM TD_PEDIDO td LEFT JOIN CRART cr ON LTRIM(RTRIM(cr.Articulo))=LTRIM(RTRIM(td.CVE_PRO)) AND cr.EMPRESA='${cfg.ID_EMP}' WHERE td.NUM_PED=${folio} AND td.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND td.ID_EMP='${cfg.ID_EMP}' ORDER BY td.NUM_PAR`);
     res.json({header:h.recordset[0]||null, detail:d.recordset});
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// --- FIX IMAGENES V36 ---
 const imgDir = path.join(__dirname,'public','img'); if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
 const bannersDir = path.join(__dirname,'public','banners'); if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
 const storage = multer.diskStorage({
@@ -137,7 +138,6 @@ const storage = multer.diskStorage({
     if(req.body.tipo==='banner'){
       cb(null, 'banner_'+Date.now()+'.jpg');
     } else {
-      // FIX: siempre mayuscula, sin espacios, solo alfanumerico y guion
       let cveRaw=(req.body.cve||'PROD').toString().trim().toUpperCase().replace(/\s+/g,'');
       cveRaw=cveRaw.replace(/[^A-Z0-9-_]/g,'').substring(0,30);
       if(!cveRaw) cveRaw='PROD_'+Date.now();
@@ -163,18 +163,18 @@ async function guardarPedido(req,res){
   const d=req.body;
   try{
     const p=await getPool(); const cfg=await getConfigDB();
-    const SUC=parseInt(cfg.ID_SUCURSAL)||1; const EMP=String(cfg.ID_EMP).trim()||'17072026';
+    const SUC=parseInt(cfg.ID_SUCURSAL)||1; const EMP=String(cfg.ID_EMP).trim()||'07082026';
     const tel=(d.telefono||'').toString().replace(/\D/g,'').slice(-10) || 'W'+Date.now().toString().slice(-8);
     const nombre=(d.nombre||'CLIENTE WEB').replace(/'/g,"").slice(0,100);
     const direccion=(d.direccion||'').slice(0,200); const lat=d.lat||null; const lng=d.lng||null;
-    await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('dir', sql.VarChar(200), direccion).input('lat', sql.VarChar(20), lat).input('lng', sql.VarChar(20), lng)
-.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG) VALUES (@cve,@des,@dir,@lat,@lng) ELSE UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve`);
+    await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('dir', sql.VarChar(200), direccion).input('lat', sql.VarChar(20), lat).input('lng', sql.VarChar(20), lng).input('emp', sql.VarChar(20), EMP)
+.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG,EMPRESA) VALUES (@cve,@des,@dir,@lat,@lng,@emp) ELSE UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
     const fr=await p.request().query(`SELECT ISNULL(MAX(NUM_PED),0)+1 as folio FROM TH_PEDIDO WHERE ID_SUCURSAL=${SUC} AND ID_EMP='${EMP}'`);
     const folio=fr.recordset[0].folio;
     let totalReal=0; let productosReales=[];
     for(const prod of d.productos||[]){
       let cveLimpio=(prod.cve||prod.articulo||'').toString().trim().substring(0,20);
-      const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).query(`SELECT CAST(Precio as decimal(18,2)) as precio FROM CRART WHERE LTRIM(RTRIM(Articulo))=@cve`);
+      const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).input('emp', sql.VarChar(20), EMP).query(`SELECT CAST(Precio as decimal(18,2)) as precio FROM CRART WHERE LTRIM(RTRIM(Articulo))=@cve AND EMPRESA=@emp`);
       let precioReal = rPrecio.recordset[0]?.precio || prod.precio || 0;
       productosReales.push({cve:cveLimpio, cant: prod.cantidad, precio: precioReal}); totalReal+=precioReal*prod.cantidad;
     }
@@ -194,4 +194,4 @@ app.post('/api/pedido-web', guardarPedido);
 app.get('/api/health', (req,res)=>res.json({ok:true}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, ()=>console.log('V36 FIX FOTOS+BANNER+GPS en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V38 07082026 en '+PORT));
