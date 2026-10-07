@@ -1,11 +1,87 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Panel Admin</title></head>
-<body><h1>Panel Admin - SysPtv 17072026</h1>
-<button onclick="logout()">Salir</button>
-<hr>
-<h3>Config Tienda</h3><div id="cfg"></div>
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panel Admin - Boutique BYG 07082026</title>
+<style>
+body{font-family:Arial;background:#f5f5f5;margin:0;padding:20px}
+h1{background:#111;color:#fff;padding:15px;border-radius:8px}
+.card{background:#fff;padding:20px;border-radius:10px;margin:15px 0;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+input,button{padding:10px;margin:5px;border:1px solid #ddd;border-radius:6px}
+button{background:#111;color:#fff;cursor:pointer;font-weight:bold}
+table{width:100%;border-collapse:collapse;margin-top:10px} th,td{border:1px solid #ddd;padding:8px;font-size:13px;text-align:left} th{background:#eee}
+</style></head>
+<body>
+<h1>Panel Admin - Boutique BYG (07082026)</h1>
+<button onclick="logout()">Cerrar Sesión</button>
+<a href="/" style="margin-left:10px"><button>Ver Tienda</button></a>
+
+<div class="card">
+<h3>⚙️ Configuración Tienda (Ya no toques código)</h3>
+<p style="font-size:12px;color:#666">Aquí cambias Empresa. Boutique debe ser 07082026, Abarrotes 17072026</p>
+ID_SUCURSAL: <input id="suc" type="number" style="width:80px">
+ID_EMP (EMPRESA): <input id="emp" style="width:120px">
+NOMBRE_TIENDA: <input id="nom" style="width:200px">
+<button onclick="saveCfg()">Guardar Config</button>
+<pre id="cfgRaw" style="background:#f0f0f0;padding:10px;font-size:12px"></pre>
+</div>
+
+<div class="card">
+<h3>🖼️ Banners</h3>
+<input id="bTit" placeholder="Título banner"><input type="file" id="bFile"><button onclick="upBanner()">Subir Banner</button>
+<div id="bannersList"></div>
+</div>
+
+<div class="card">
+<h3>📦 Últimos 100 Pedidos (Filtrados por EMPRESA)</h3>
+<button onclick="loadPedidos()">Recargar Pedidos</button>
+<div id="pedidos" style="overflow:auto"></div>
+</div>
+
+<div class="card">
+<h3>👥 Últimos 100 Clientes (Filtrados por EMPRESA)</h3>
+<button onclick="loadClientes()">Recargar Clientes</button>
+<div id="clientes" style="overflow:auto"></div>
+</div>
+
 <script>
-async function check(){ const r=await fetch('/api/admin/me'); if(!r.ok) location.href='/admin/login.html'; }
-async function loadCfg(){ const r=await fetch('/api/config'); const j=await r.json(); document.getElementById('cfg').innerText=JSON.stringify(j,null,2); }
-async function logout(){ await fetch('/api/admin/logout',{method:'POST'}); location.href='/admin/login.html'; }
-check(); loadCfg();
+function checkAdmin(){ if(localStorage.getItem('admin')!=='1'){ location.href='/admin/login.html'; } }
+checkAdmin();
+
+async function loadCfg(){
+ const r=await fetch('/api/config'); const j=await r.json();
+ document.getElementById('suc').value=j.ID_SUCURSAL||1;
+ document.getElementById('emp').value=j.ID_EMP||'07082026';
+ document.getElementById('nom').value=j.NOMBRE_TIENDA||'BOUTIQUE BYG';
+ document.getElementById('cfgRaw').innerText=JSON.stringify(j,null,2);
+}
+async function saveCfg(){
+ const body={ID_SUCURSAL: parseInt(document.getElementById('suc').value), ID_EMP: document.getElementById('emp').value.trim(), NOMBRE_TIENDA: document.getElementById('nom').value.trim()};
+ const r=await fetch('/api/admin/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const j=await r.json(); alert(j.ok?'Guardado':'Error '+j.error); loadCfg();
+}
+async function upBanner(){
+ const f=document.getElementById('bFile').files[0]; if(!f) return alert('Selecciona imagen');
+ const fd=new FormData(); fd.append('imagen',f); fd.append('tipo','banner'); fd.append('cve','banner');
+ const up=await fetch('/api/upload-imagen',{method:'POST',body:fd}); const uj=await up.json();
+ if(!up.ok) return alert('Error upload '+uj.error);
+ const r=await fetch('/api/admin/banners',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:document.getElementById('bTit').value, imagen:uj.file})});
+ alert('Banner guardado'); loadBanners();
+}
+async function loadBanners(){
+ const r=await fetch('/api/admin/banners'); const list=await r.json();
+ document.getElementById('bannersList').innerHTML=list.map(b=>`<div style="margin:5px;border:1px solid #ddd;padding:5px"><img src="${b.IMAGEN}" style="height:60px"> ${b.TITULO} (${b.EMPRESA||'sin emp'}) <button onclick="delBanner(${b.ID})">Borrar</button></div>`).join('');
+}
+async function delBanner(id){ if(!confirm('Borrar?')) return; await fetch('/api/admin/banners/'+id,{method:'DELETE'}); loadBanners(); }
+async function loadPedidos(){
+ const r=await fetch('/api/admin/pedidos'); const list=await r.json();
+ let h='<table><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>GPS</th></tr>';
+ list.forEach(p=>{ h+=`<tr><td>${p.NUM_PED}</td><td>${new Date(p.FEC_PED).toLocaleString()}</td><td>${p.DES_CTE||p.CVE_CTE}</td><td>${p.SUB_TOT+p.IVA_TOT}</td><td>${p.PED_LAT?'<a href="https://maps.google.com/?q='+p.PED_LAT+','+p.PED_LNG+'" target="_blank">Ver Mapa</a>':'Sin GPS'}</td></tr>` });
+ h+='</table>'; document.getElementById('pedidos').innerHTML=h;
+}
+async function loadClientes(){
+ const r=await fetch('/api/admin/clientes'); const list=await r.json();
+ let h='<table><tr><th>CVE_CTE</th><th>Nombre</th><th>Empresa</th><th>Dirección</th></tr>';
+ list.forEach(c=>{ h+=`<tr><td>${c.CVE_CTE}</td><td>${c.DES_CTE}</td><td>${c.EMPRESA}</td><td>${c.DIRECCION||''}</td></tr>` });
+ h+='</table>'; document.getElementById('clientes').innerHTML=h;
+}
+function logout(){ localStorage.removeItem('admin'); location.href='/admin/login.html'; }
+loadCfg(); loadBanners(); loadPedidos(); loadClientes();
 </script></body></html>
