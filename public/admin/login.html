@@ -1,9 +1,16 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Login Admin</title>
-<style>body{font-family:Arial;background:#111;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh}.box{background:#222;padding:30px;border-radius:10px;width:300px} input{width:100%;padding:10px;margin:8px 0;border-radius:5px;border:none} button{width:100%;padding:10px;background:#0f0;color:#000;font-weight:bold;border:none;border-radius:5px;cursor:pointer}</style></head>
-<body><div class="box"><h2>Admin SysPtv</h2><input id="u" placeholder="usuario" value="admin"><input id="p" type="password" placeholder="pass"><button onclick="login()">Entrar</button><p id="msg"></p></div>
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Login Admin - Boutique BYG</title>
+<style>body{font-family:Arial;background:#111;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}.box{background:#222;padding:30px;border-radius:10px;width:300px} input{width:100%;padding:10px;margin:8px 0;border-radius:5px;border:none;box-sizing:border-box} button{width:100%;padding:10px;background:#0f0;color:#000;font-weight:bold;border:none;border-radius:5px;cursor:pointer;margin-top:10px} #msg{color:#ff5555;font-size:13px}</style></head>
+<body><div class="box"><h2>Admin Boutique BYG</h2><input id="u" placeholder="usuario" value="admin"><input id="p" type="password" placeholder="pass" value=""><button onclick="login()">Entrar</button><p id="msg"></p></div>
 <script>
 async function login(){
-  const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:document.getElementById('u').value,password:document.getElementById('p').value})});
-  const j=await r.json(); if(j.ok) location.href='/admin/index.html'; else document.getElementById('msg').innerText=j.error;
+  const user=document.getElementById('u').value.trim();
+  const pass=document.getElementById('p').value;
+  document.getElementById('msg').innerText='Entrando...';
+  try{
+    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user, pass})});
+    const j=await r.json();
+    if(r.ok && j.ok){ localStorage.setItem('admin','1'); location.href='/admin/index.html'; }
+    else document.getElementById('msg').innerText=j.error||'Usuario o contraseña incorrecta';
+  }catch(e){ document.getElementById('msg').innerText='Error: '+e.message; }
 }
 </script></body></html>
