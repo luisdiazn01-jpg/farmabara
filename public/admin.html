@@ -1,19 +1,68 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ADMIN SYSPTV</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}body{display:flex;min-height:100vh;background:#F8FAFC}nav{width:250px;background:#0F172A;color:#fff;padding:20px}.nav-item{padding:11px 14px;border-radius:12px;cursor:pointer;margin:7px 0;color:#94A3B8;font-weight:600}.nav-item.active{background:#1E293B;color:#fff}main{flex:1;padding:24px;overflow:auto}.card{background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:18px;margin-bottom:18px}table{width:100%;border-collapse:collapse;font-size:13px}th{color:#64748B;text-align:left;padding:10px 8px;border-bottom:2px solid #E2E8F0;font-size:11px;text-transform:uppercase}td{padding:12px 8px;border-bottom:1px solid #F1F5F9}.btn{padding:8px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700;font-size:12px}.btn-green{background:#059669;color:#fff}.btn-dark{background:#0F172A;color:#fff}.btn-red{background:#EF4444;color:#fff}.modal{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;z-index:999}.modal-box{background:#fff;border-radius:20px;padding:24px;width:560px;max-width:95vw;max-height:90vh;overflow:auto}.prod-card{border:1px solid #E2E8F0;border-radius:16px;padding:10px;background:#fff;position:relative}</style></head><body>
-<nav><div style="font-weight:800;font-size:18px">TIENDA SYSPTV</div><div style="margin-top:28px"><div class="nav-item active" onclick="showTab('pedidos',this)">📦 Pedidos</div><div class="nav-item" onclick="showTab('productos',this)">🛒 Productos + Fotos</div><div class="nav-item" onclick="showTab('clientes',this)">👥 Clientes</div><div class="nav-item" onclick="showTab('banners',this)">🖼️ Banners</div><div class="nav-item" onclick="showTab('config',this)">⚙️ Config</div><div style="margin-top:36px;border-top:1px solid #1E293B;padding-top:18px"><a href="/" style="color:#94A3B8;text-decoration:none;font-size:13px">← Tienda</a><div style="margin-top:14px;cursor:pointer;color:#64748B;font-size:13px" onclick="localStorage.clear();location.href='/admin.html'">Salir</div></div></div></nav>
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADMIN BOUTIQUE BYG</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+body{display:flex;min-height:100vh;background:#F8FAFC;overflow-x:hidden}
+nav{width:260px;background:#0F172A;color:#fff;padding:20px;position:fixed;left:0;top:0;bottom:0;z-index:100;transition:.3s;overflow-y:auto}
+.nav-item{padding:12px 14px;border-radius:12px;cursor:pointer;margin:6px 0;color:#94A3B8;font-weight:600;display:flex;align-items:center;gap:8px;font-size:14px}
+.nav-item.active{background:#1E293B;color:#fff}
+main{flex:1;margin-left:260px;padding:24px;overflow:auto;min-width:0;width:calc(100% - 260px)}
+.card{background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:18px;margin-bottom:18px;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:650px}
+th{color:#64748B;text-align:left;padding:10px 8px;border-bottom:2px solid #E2E8F0;font-size:11px;text-transform:uppercase;white-space:nowrap}
+td{padding:12px 8px;border-bottom:1px solid #F1F5F9}
+.btn{padding:8px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700;font-size:12px;white-space:nowrap}
+.btn-green{background:#059669;color:#fff}.btn-dark{background:#0F172A;color:#fff}.btn-red{background:#EF4444;color:#fff}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;z-index:999;padding:12px}
+.modal-box{background:#fff;border-radius:20px;padding:20px;width:560px;max-width:100%;max-height:90vh;overflow:auto}
+.prod-card{border:1px solid #E2E8F0;border-radius:16px;padding:10px;background:#fff;position:relative}
+.topbar{display:none;background:#0F172A;color:#fff;padding:12px 16px;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.hamburger{font-size:22px;cursor:pointer;background:#1E293B;width:38px;height:38px;display:grid;place-items:center;border-radius:10px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}
+
+/* MOBILE */
+@media(max-width:900px){
+  nav{transform:translateX(-100%);width:85%;max-width:300px}
+  nav.open{transform:translateX(0)}
+  main{margin-left:0;width:100%;padding:12px}
+ .topbar{display:flex}
+ .overlay.show{display:block}
+  table{font-size:12px}
+  #list-prod>div{grid-template-columns:repeat(2,1fr)!important}
+  h2{font-size:18px}
+}
+</style></head><body>
+<div class="topbar"><b>Boutique BYG Admin</b><div class="hamburger" onclick="toggleNav()">☰</div></div>
+<div class="overlay" id="overlay" onclick="toggleNav()"></div>
+
+<nav id="sidebar"><div style="font-weight:800;font-size:18px">TIENDA SYSPTV</div>
+<div style="margin-top:28px">
+<div class="nav-item active" onclick="showTab('pedidos',this); if(window.innerWidth<900) toggleNav()">📦 Pedidos</div>
+<div class="nav-item" onclick="showTab('productos',this); if(window.innerWidth<900) toggleNav()">🛒 Productos + Fotos</div>
+<div class="nav-item" onclick="showTab('clientes',this); if(window.innerWidth<900) toggleNav()">👥 Clientes</div>
+<div class="nav-item" onclick="showTab('banners',this); if(window.innerWidth<900) toggleNav()">🖼️ Banners</div>
+<div class="nav-item" onclick="showTab('config',this); if(window.innerWidth<900) toggleNav()">⚙️ Config</div>
+<div style="margin-top:36px;border-top:1px solid #1E293B;padding-top:18px">
+<a href="/" style="color:#94A3B8;text-decoration:none;font-size:13px">← Tienda</a>
+<div style="margin-top:14px;cursor:pointer;color:#64748B;font-size:13px" onclick="localStorage.clear();location.href='/admin.html'">Salir</div>
+</div></div></nav>
+
 <main>
-<div id="tab-pedidos"><h2>Pedidos - GPS por Pedido</h2><div class="card"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Total</th><th>GPS Pedido</th><th>GPS Cliente</th><th>Detalle</th></tr></thead><tbody id="tb-pedidos"></tbody></table></div></div>
-<div id="tab-productos" style="display:none"><h2>Productos - Subir Fotos</h2><div class="card"><div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:10px;border-radius:12px;font-size:12px;margin-bottom:12px">💡 La foto debe ser <b>.jpg</b> y se guardará como <b>/img/CVE_DEL_PRODUCTO.jpg</b>. Ej: COCA-600.jpg → /img/COCA-600.jpg</div><input id="bus-prod" placeholder="Buscar producto por nombre o clave..." style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin-bottom:12px" oninput="filtrarProd()"><div id="list-prod"></div></div></div>
-<div id="tab-clientes" style="display:none"><h2>Clientes</h2><div class="card"><table><thead><tr><th>CVE</th><th>Nombre</th><th>Dirección</th><th>GPS</th></tr></thead><tbody id="tb-clientes"></tbody></table></div></div>
-<div id="tab-banners" style="display:none"><h2>Banners</h2><div class="card"><input id="b-titulo" placeholder="Texto banner" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:8px 0"><input type="file" id="b-file" accept="image/*"><button class="btn btn-green" onclick="subirBanner()" style="margin-top:8px">Subir Banner</button><div style="margin-top:20px" id="list-banners"></div></div></div>
-<div id="tab-config" style="display:none"><h2>Config</h2><div class="card" style="max-width:500px"><input id="c-suc" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0"><input id="c-emp" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0"><input id="c-nom" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0"><button class="btn btn-green" style="width:100%;padding:12px" onclick="guardarConfig()">Guardar</button></div></div>
+<div id="tab-pedidos"><h2>Pedidos - GPS por Pedido</h2><div class="card" style="overflow-x:auto"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Total</th><th>GPS Pedido</th><th>GPS Cliente</th><th>Detalle</th></tr></thead><tbody id="tb-pedidos"></tbody></table></div></div>
+<div id="tab-productos" style="display:none"><h2>Productos - Subir Fotos</h2><div class="card"><div style="background:#F0FDF4;border:1px solid #BBF7D0;padding:10px;border-radius:12px;font-size:12px;margin-bottom:12px">💡 La foto debe ser <b>.jpg</b> y se guardará como <b>/img/CVE.jpg</b></div><input id="bus-prod" placeholder="Buscar..." style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin-bottom:12px" oninput="filtrarProd()"><div id="list-prod"></div></div></div>
+<div id="tab-clientes" style="display:none"><h2>Clientes</h2><div class="card" style="overflow-x:auto"><table><thead><tr><th>CVE</th><th>Nombre</th><th>Dirección</th><th>GPS</th></tr></thead><tbody id="tb-clientes"></tbody></table></div></div>
+<div id="tab-banners" style="display:none"><h2>Banners</h2><div class="card"><input id="b-titulo" placeholder="Texto banner" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:8px 0"><input type="file" id="b-file" accept="image/*"><br><button class="btn btn-green" onclick="subirBanner()" style="margin-top:8px">Subir Banner</button><div style="margin-top:20px" id="list-banners"></div></div></div>
+<div id="tab-config" style="display:none"><h2>Config</h2><div class="card" style="max-width:500px"><label style="font-size:12px">ID_SUCURSAL</label><input id="c-suc" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0"><label style="font-size:12px">ID_EMP (07082026 boutique / 17072026 abarrotes)</label><input id="c-emp" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0"><label style="font-size:12px">NOMBRE_TIENDA</label><input id="c-nom" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:12px;margin:6px 0"><button class="btn btn-green" style="width:100%;padding:12px" onclick="guardarConfig()">Guardar</button></div></div>
 </main>
 
 <div id="modal-foto" class="modal" onclick="if(event.target===this) this.style.display='none'"><div class="modal-box" style="width:400px"><h3 id="foto-titulo"></h3><br><input type="file" id="foto-file" accept="image/*" style="width:100%"><div style="margin-top:12px;display:flex;gap:10px"><button class="btn btn-green" style="flex:1" onclick="confirmarSubidaFoto()">Subir</button><button class="btn btn-dark" style="flex:1" onclick="document.getElementById('modal-foto').style.display='none'">Cancelar</button></div><p id="foto-msg" style="margin-top:10px;font-size:12px"></p></div></div>
 
-<div id="modal-detalle" class="modal" onclick="if(event.target===this) this.style.display='none'"><div class="modal-box"><div style="display:flex;justify-content:space-between"><h3 id="md-folio"></h3><span onclick="document.getElementById('modal-detalle').style.display='none'" style="cursor:pointer">✕</span></div><div id="md-cliente" style="margin:14px 0;padding:12px;background:#F8FAFC;border-radius:12px;font-size:13px"></div><table><thead><tr><th>Prod</th><th>Cant</th><th>Precio</th><th>Sub</th></tr></thead><tbody id="md-tb"></tbody></table><div style="display:flex;justify-content:space-between;margin-top:16px;border-top:2px solid #0F172A;padding-top:10px"><b>Total</b><b id="md-total" style="color:#059669"></b></div><a id="md-maps" href="#" target="_blank" class="btn btn-green" style="display:none;margin-top:12px;width:100%;text-align:center;text-decoration:none">📍 Ver Ubicación del Pedido</a></div></div>
+<div id="modal-detalle" class="modal" onclick="if(event.target===this) this.style.display='none'"><div class="modal-box"><div style="display:flex;justify-content:space-between"><h3 id="md-folio"></h3><span onclick="document.getElementById('modal-detalle').style.display='none'" style="cursor:pointer">✕</span></div><div id="md-cliente" style="margin:14px 0;padding:12px;background:#F8FAFC;border-radius:12px;font-size:13px"></div><div style="overflow:auto"><table><thead><tr><th>Prod</th><th>Cant</th><th>Precio</th><th>Sub</th></tr></thead><tbody id="md-tb"></tbody></table></div><div style="display:flex;justify-content:space-between;margin-top:16px;border-top:2px solid #0F172A;padding-top:10px"><b>Total</b><b id="md-total" style="color:#059669"></b></div><a id="md-maps" href="#" target="_blank" class="btn btn-green" style="display:none;margin-top:12px;width:100%;text-align:center;text-decoration:none">📍 Ver Ubicación del Pedido</a></div></div>
 
 <script>
 let allProd=[], cveFotoActual=null;
+function toggleNav(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
 function showTab(id,el){ document.querySelectorAll('main>div').forEach(d=>d.style.display='none'); document.getElementById('tab-'+id).style.display='block'; document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); if(el) el.classList.add('active'); if(id=='pedidos') loadPedidos(); if(id=='productos') loadProductos(); if(id=='clientes') loadClientes(); if(id=='banners') loadBanners(); if(id=='config') loadConfig(); }
 
 async function loadPedidos(){ const r=await fetch('/api/admin/pedidos').then(r=>r.json()); const tb=document.getElementById('tb-pedidos'); tb.innerHTML=''; r.forEach(p=>{ const total=Number(p.SUB_TOT||0)+Number(p.IVA_TOT||0); const gpsPedido = p.PED_LAT? `<a href="https://maps.google.com/?q=${p.PED_LAT},${p.PED_LNG}" target="_blank" style="color:#059669;font-weight:800">📍 PEDIDO</a>` : `<span style="color:#94A3B8">Sin GPS</span>`; const gpsCliente = p.LAT? `<a href="https://maps.google.com/?q=${p.LAT},${p.LNG}" target="_blank" style="font-size:11px">Últ</a>` : '-'; tb.innerHTML+=`<tr><td><b>#${p.NUM_PED}</b></td><td>${p.DES_CTE||''}</td><td style="color:#059669;font-weight:800">$${total.toFixed(2)}</td><td>${gpsPedido}</td><td>${gpsCliente}</td><td><button class="btn btn-green" onclick="verDetalle(${p.NUM_PED})">Ver</button></td></tr>`; }); }
