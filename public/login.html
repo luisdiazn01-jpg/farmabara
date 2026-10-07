@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Entrar - Tienda SysPtv</title>
+<title>Entrar - Boutique BYG</title>
 <style>
 body{font-family:Arial;background:#f4f4f4;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}
 .card{background:#fff;padding:30px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,.1);width:100%;max-width:360px}
@@ -14,7 +14,7 @@ button{width:100%;padding:12px;background:#111;color:#fff;border:none;border-rad
 <body>
 <div class="card">
 <h2>Bienvenido</h2><p style="color:#666;font-size:14px">Entra con tu WhatsApp</p>
-<input id="telefono" placeholder="WhatsApp" maxlength="10" type="tel">
+<input id="telefono" placeholder="WhatsApp 10 dígitos" maxlength="10" type="tel">
 <input id="pass" type="password" placeholder="Contraseña">
 <button onclick="login()">Entrar</button>
 <p id="msg"></p>
@@ -28,9 +28,20 @@ async function login(){
  const msg=document.getElementById('msg');
  if(!telefono||!password) return msg.innerText='Falta teléfono o pass';
  msg.innerText='Entrando...';
- const r=await fetch('/api/clientes/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono,password})});
- const j=await r.json();
- if(!r.ok) msg.innerText=j.error; else location.href='/';
+ try{
+   const r=await fetch('/api/cliente/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefono,password})});
+   const j=await r.json();
+   if(!r.ok) { msg.innerText=j.error||'Error'; return; }
+   if(j.esAdmin){
+     localStorage.setItem('esAdmin','1');
+     localStorage.setItem('cliente', JSON.stringify(j.cliente));
+     location.href='/admin.html';
+     return;
+   }
+   localStorage.setItem('cliente', JSON.stringify(j.cliente));
+   localStorage.setItem('telefono', j.cliente.CVE_CTE);
+   location.href='/';
+ }catch(e){ msg.innerText='Error de conexión: '+e.message }
 }
 </script>
 </body>
