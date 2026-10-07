@@ -1,16 +1,60 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Login Admin - Boutique BYG</title>
-<style>body{font-family:Arial;background:#111;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}.box{background:#222;padding:30px;border-radius:10px;width:300px} input{width:100%;padding:10px;margin:8px 0;border-radius:5px;border:none;box-sizing:border-box} button{width:100%;padding:10px;background:#0f0;color:#000;font-weight:bold;border:none;border-radius:5px;cursor:pointer;margin-top:10px} #msg{color:#ff5555;font-size:13px}</style></head>
-<body><div class="box"><h2>Admin Boutique BYG</h2><input id="u" placeholder="usuario" value="admin"><input id="p" type="password" placeholder="pass" value=""><button onclick="login()">Entrar</button><p id="msg"></p></div>
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login Admin - Boutique BYG</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+body{min-height:100vh;background:#0F0F0F;display:flex;justify-content:center;align-items:center;padding:16px;position:relative;overflow:hidden}
+body::before{content:'';position:absolute;inset:-20%;background:radial-gradient(circle at 30% 20%, #0F5C4A 0%, transparent 50%), radial-gradient(circle at 80% 80%, #FFB4C1 0%, transparent 40%);opacity:.5;filter:blur(30px)}
+.box{position:relative;background:#fff;width:100%;max-width:400px;border-radius:28px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.logo{width:52px;height:52px;background:#0E0E0E;color:#F5E6C8;display:grid;place-items:center;border-radius:16px;font-family:'Playfair Display';font-size:22px;margin-bottom:16px}
+h2{font-family:'Playfair Display';font-size:24px;line-height:1.1}
+.sub{color:#64748B;font-size:13px;margin:6px 0 18px}
+label{font-size:11px;font-weight:700;letter-spacing:.08em;color:#64748B;text-transform:uppercase;margin:10px 2px 4px;display:block}
+input{width:100%;padding:14px 14px;background:#F8F5F5;border:1.5px solid #E2E8F0;border-radius:14px;outline:none;font-size:15px;transition:.2s}
+input:focus{border-color:#0F5C4A;background:#fff}
+button{width:100%;padding:14px;background:#0E0E0E;color:#fff;border:none;border-radius:999px;font-weight:800;font-size:14px;cursor:pointer;margin-top:18px;transition:.2s}
+button:active{transform:scale(.98)} button:disabled{opacity:.6}
+#msg{margin-top:12px;font-size:13px;min-height:18px;text-align:center}
+.msg-err{color:#EF4444}.msg-ok{color:#059669}
+.foot{margin-top:18px;text-align:center;font-size:12px;color:#94A3B8}
+.foot a{color:#0F172A;text-decoration:none;font-weight:600}
+@media(max-width:400px){ .box{padding:22px 18px;border-radius:22px} h2{font-size:20px} }
+</style></head>
+<body>
+<div class="box">
+<div class="logo">B</div>
+<h2>Admin Boutique<br>BYG ✨</h2>
+<p class="sub">Barrio Elegancia - Panel 07082026</p>
+
+<label>Usuario</label>
+<input id="u" placeholder="admin" value="admin" autocomplete="username">
+
+<label>Contraseña</label>
+<input id="p" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
+
+<button id="btn" onclick="login()">Entrar →</button>
+<p id="msg"></p>
+
+<div class="foot"><a href="/">← Volver a la tienda</a></div>
+</div>
+
 <script>
 async function login(){
   const user=document.getElementById('u').value.trim();
   const pass=document.getElementById('p').value;
-  document.getElementById('msg').innerText='Entrando...';
+  const msg=document.getElementById('msg');
+  const btn=document.getElementById('btn');
+  if(!user||!pass){ msg.className='msg-err'; msg.innerText='Falta usuario o contraseña'; return; }
+  btn.disabled=true; btn.innerText='Entrando...'; msg.innerText='';
   try{
     const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user, pass})});
     const j=await r.json();
-    if(r.ok && j.ok){ localStorage.setItem('admin','1'); location.href='/admin/index.html'; }
-    else document.getElementById('msg').innerText=j.error||'Usuario o contraseña incorrecta';
-  }catch(e){ document.getElementById('msg').innerText='Error: '+e.message; }
+    if(r.ok && j.ok){ 
+      localStorage.setItem('admin','1'); 
+      msg.className='msg-ok'; msg.innerText='✅ Bienvenido'; 
+      setTimeout(()=> location.href='/admin.html', 400);
+    } else { msg.className='msg-err'; msg.innerText=j.error||'Usuario o contraseña incorrecta'; btn.disabled=false; btn.innerText='Entrar →'; }
+  }catch(e){ msg.className='msg-err'; msg.innerText='Error: '+e.message; btn.disabled=false; btn.innerText='Entrar →'; }
 }
-</script></body></html>
+</script>
+</body></html>
