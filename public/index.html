@@ -76,7 +76,8 @@ async function init(){
   checkAuth(); loadBanners();
   try{
     const cfg=await fetch('/api/config').then(r=>r.json());
-    if(cfg.NOMBRE_TIENDA) document.getElementById('nombre-tienda').innerText=cfg.NOMBRE_TIENDA;
+   // Forzar Boutique B&G aunque el config diga SYSPTV
+      document.getElementById('nombre-tienda').innerText='Boutique B&G';
   }catch{}
   try{
     const res=await fetch('/api/productos');
