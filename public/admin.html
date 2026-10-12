@@ -2,57 +2,63 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin B&G V44</title>
+<title>Admin B&G V46</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>*{font-family:Inter,sans-serif}.active{background:#0E0E0E;color:white}</style>
 </head>
-<body class="bg-[#F8F5F5] flex min-h-screen">
-<!-- MENU IZQUIERDA -->
-<div class="w-[240px] bg-white border-r p-4 hidden md:block sticky top-0 h-screen">
-<h2 class="font-extrabold text-[18px]">Boutique B&G</h2>
-<p class="text-[11px] text-slate-400 mb-4">Admin V44 Fix Fotos</p>
-<div class="flex flex-col gap-1">
-<button onclick="showTab('productos')" id="tab-productos" class="active text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">📦 Productos / Fotos</button>
-<button onclick="showTab('banners')" id="tab-banners" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">🖼️ Banners</button>
-<button onclick="showTab('pedidos')" id="tab-pedidos" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">🧾 Pedidos</button>
-<button onclick="showTab('clientes')" id="tab-clientes" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">👥 Clientes</button>
-<button onclick="showTab('config')" id="tab-config" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">⚙️ Config</button>
+<body class="bg-[#F3F2] flex min-h-screen">
+<div class="w-[270px] bg-white border-r p-4 hidden md:flex flex-col sticky top-0 h-screen">
+<div><h2 class="font-extrabold text-[18px]">Boutique B&G</h2><p class="text-[11px] text-slate-400">Admin V46 Restaurado</p></div>
+<div class="flex flex-col gap-1.5 mt-6">
+<button onclick="showTab('productos')" id="tab-productos" class="active text-left px-4 py-2.5 rounded-full text-[13px] font-bold">📦 Productos / Fotos</button>
+<button onclick="showTab('banners')" id="tab-banners" class="text-left px-4 py-2.5 rounded-full text-[13px] font-bold">🖼️ Banners</button>
+<button onclick="showTab('pedidos')" id="tab-pedidos" class="text-left px-4 py-2.5 rounded-full text-[13px] font-bold">📋 Pedidos</button>
+<button onclick="showTab('clientes')" id="tab-clientes" class="text-left px-4 py-2.5 rounded-full text-[13px] font-bold">👥 Clientes</button>
+<button onclick="showTab('config')" id="tab-config" class="text-left px-4 py-2.5 rounded-full text-[13px] font-bold">⚙️ Config</button>
 </div>
-<div class="mt-6">
-<a href="/api/debug/img" target="_blank" class="text-[11px] underline text-green-700">📁 Ver fotos guardadas (/api/debug/img)</a>
-<div id="debug-count" class="text-[11px] text-slate-500 mt-1"></div>
+<div class="mt-6 p-3 bg-[#F8F5F5] rounded-xl">
+<a href="/api/debug/img" target="_blank" class="text-[11px] underline text-green-700 font-bold">📁 Ver fotos guardadas</a>
+<div id="debug-count" class="text-[10px] text-slate-500 mt-1 break-all">Cargando...</div>
 </div>
+<div class="mt-auto pt-4 border-t flex flex-col gap-2">
+<a href="/" class="w-full bg-white border text-center py-2.5 rounded-full text-[12px] font-bold">← Regresar a la tienda</a>
+<button onclick="localStorage.clear(); location.href='/'" class="w-full bg-[#F8F5F5] text-center py-2.5 rounded-full text-[12px]">Salir</button>
 </div>
-
-<!-- CONTENIDO -->
-<div class="flex-1 p-4 max-w-[1200px] mx-auto">
-<div class="flex md:hidden gap-2 mb-3 overflow-auto">
-<button onclick="showTab('productos')" class="bg-black text-white px-3 py-1.5 rounded-full text-[11px]">Productos</button>
-<button onclick="showTab('banners')" class="bg-white border px-3 py-1.5 rounded-full text-[11px]">Banners</button>
-<button onclick="showTab('pedidos')" class="bg-white border px-3 py-1.5 rounded-full text-[11px]">Pedidos</button>
 </div>
 
-<!-- PRODUCTOS TAB -->
-<div id="sec-productos">
-<h1 class="font-bold text-[22px]">Productos - Subir Fotos V44</h1>
-<div class="bg-green-50 border border-green-200 rounded-xl px-4 py-2 mt-2 text-[12px]">💡 FIX V44: Se guarda como <b>/img/CVE.jpg</b> con volumen persistente. Si dice "Sin foto" es que no existe en el servidor.</div>
-<div class="bg-white rounded-xl p-3 mt-3 flex gap-2"><input id="buscador" placeholder="Buscar..." class="flex-1 bg-[#F8F5F5] rounded-full px-4 py-2 text-[13px] outline-none"><button onclick="cargar()" class="bg-black text-white px-4 py-2 rounded-full text-[12px]">Recargar</button></div>
-<div id="productos" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">Cargando...</div>
+<div class="flex-1 p-3 md:p-6 max-w-[1400px] mx-auto w-full">
+<div class="flex md:hidden gap-2 mb-3 overflow-auto"><button onclick="showTab('productos')" class="bg-black text-white px-3 py-1.5 rounded-full text-[11px]">Productos</button><button onclick="showTab('banners')" class="bg-white border px-3 py-1.5 rounded-full text-[11px]">Banners</button><button onclick="showTab('pedidos')" class="bg-white border px-3 py-1.5 rounded-full text-[11px]">Pedidos</button></div>
+
+<div id="sec-productos"><h1 class="font-bold text-[20px]">Productos - Subir Fotos V46</h1><div class="bg-green-50 border border-green-200 rounded-xl px-3 py-2 mt-2 text-[11px]">Fix aplicado: se guarda como <b>/img/CVE.jpg</b> en volumen persistente. Ya tienes 7 fotos guardadas.</div><div class="bg-white rounded-xl p-3 mt-3 flex gap-2"><input id="buscador" placeholder="Buscar..." class="flex-1 bg-[#F8F5F5] rounded-full px-4 py-2.5 text-[13px] outline-none"><button onclick="cargar()" class="bg-black text-white px-5 py-2.5 rounded-full text-[12px]">Recargar</button></div><div id="productos" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4"></div></div>
+
+<div id="sec-banners" class="hidden">
+<h1 class="font-bold text-[20px]">Banners</h1>
+<div class="bg-white rounded-xl p-4 mt-3 border">
+<h3 class="font-bold text-[13px] mb-3">Subir nuevo banner</h3>
+<div class="flex flex-col md:flex-row gap-2">
+<input id="banner-titulo" placeholder="Título (opcional)" class="flex-1 bg-[#F8F5F5] rounded-full px-4 py-2.5 text-[12px] outline-none">
+<input type="file" id="banner-file" accept="image/*" class="text-[11px] flex-1">
+<button onclick="subirBanner()" class="bg-black text-white px-6 py-2.5 rounded-full text-[12px] font-bold">Subir Banner</button>
+</div>
+<div id="banner-status" class="text-[11px] mt-2"></div>
+</div>
+<div id="banners-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4"></div>
 </div>
 
-<!-- BANNERS TAB -->
-<div id="sec-banners" class="hidden"><h1 class="font-bold text-[20px]">Banners</h1><div id="banners-list" class="mt-3"></div></div>
-<div id="sec-pedidos" class="hidden"><h1 class="font-bold text-[20px]">Pedidos</h1><div id="pedidos-list" class="mt-3">Cargando...</div></div>
-<div id="sec-clientes" class="hidden"><h1 class="font-bold text-[20px]">Clientes</h1><div id="clientes-list" class="mt-3">Cargando...</div></div>
-<div id="sec-config" class="hidden"><h1 class="font-bold text-[20px]">Config</h1><div class="text-[12px] text-slate-500 mt-2">Config en /api/config</div></div>
+<div id="sec-pedidos" class="hidden"><h1 class="font-bold text-[20px]">Pedidos</h1><div id="pedidos-list" class="mt-3 bg-white rounded-xl p-3 border">Cargando...</div>
+<div id="pedido-detalle" class="hidden fixed inset-0 bg-black/50 p-4 z-50 grid place-items-center"><div class="bg-white rounded-xl p-4 w-full max-w-[600px] max-h-[90vh] overflow-auto"><div class="flex justify-between"><h3 class="font-bold">Detalle</h3><button onclick="document.getElementById('pedido-detalle').classList.add('hidden')" class="bg-black text-white w-7 h-7 rounded-full text-[12px]">X</button></div><div id="pedido-detalle-cont" class="mt-3 text-[12px]"></div></div></div>
+</div>
+
+<div id="sec-clientes" class="hidden"><h1 class="font-bold text-[20px]">Clientes</h1><div id="clientes-list" class="mt-3 bg-white rounded-xl p-3 border">Cargando...</div></div>
+<div id="sec-config" class="hidden"><h1 class="font-bold text-[20px]">Configuración Tienda</h1><div class="bg-white rounded-xl p-4 mt-3 max-w-[500px] border"><label class="text-[11px] font-bold">ID_SUCURSAL</label><input id="cfg-suc" class="w-full bg-[#F8F5F5] rounded-full px-4 py-2.5 text-[13px] mt-1 outline-none"><label class="text-[11px] font-bold mt-3 block">ID_EMP</label><input id="cfg-emp" class="w-full bg-[#F8F5F5] rounded-full px-4 py-2.5 text-[13px] mt-1 outline-none"><label class="text-[11px] font-bold mt-3 block">Nombre Tienda</label><input id="cfg-nom" class="w-full bg-[#F8F5F5] rounded-full px-4 py-2.5 text-[13px] mt-1 outline-none"><button onclick="guardarConfig()" class="mt-4 bg-black text-white px-6 py-2.5 rounded-full text-[13px] w-full font-bold">Guardar Config</button><div id="cfg-status" class="text-[11px] mt-2"></div></div></div>
 </div>
 
 <script>
 let todos=[];
 function showTab(t){
   ['productos','banners','pedidos','clientes','config'].forEach(x=>{
-    document.getElementById('sec-'+x).classList.add('hidden');
+    document.getElementById('sec-'+x)?.classList.add('hidden');
     document.getElementById('tab-'+x)?.classList.remove('active');
   });
   document.getElementById('sec-'+t).classList.remove('hidden');
@@ -60,89 +66,49 @@ function showTab(t){
   if(t==='banners') cargarBanners();
   if(t==='pedidos') cargarPedidos();
   if(t==='clientes') cargarClientes();
+  if(t==='config') cargarConfig();
 }
-
-async function cargar(){
-  const r=await fetch('/api/productos').then(r=>r.json());
-  todos=r;
-  render(r);
-  checkDebug();
-}
-async function checkDebug(){
-  try{
-    const d=await fetch('/api/debug/img').then(r=>r.json());
-    document.getElementById('debug-count').innerText=`${d.count||0} fotos en servidor: ${(d.files||[]).slice(0,3).join(', ')}`;
-  }catch{}
-}
+async function cargar(){ const r=await fetch('/api/productos').then(r=>r.json()); todos=r; render(r); checkDebug(); }
+async function checkDebug(){ try{ const d=await fetch('/api/debug/img').then(r=>r.json()); document.getElementById('debug-count').innerText=`${d.count} fotos: ${(d.files||[]).slice(0,3).join(', ')}`; }catch{} }
 function render(lista){
-  const div=document.getElementById('productos');
-  div.innerHTML='';
+  const div=document.getElementById('productos'); div.innerHTML='';
   const q=document.getElementById('buscador').value.toLowerCase();
-  const f=lista.filter(p=>p.cve.toLowerCase().includes(q)||p.nombre.toLowerCase().includes(q));
+  const f=lista.filter(p=>(p.cve||'').toLowerCase().includes(q)||(p.nombre||'').toLowerCase().includes(q));
   f.forEach(p=>{
     const cveLimpio=(p.cve||'').trim().toUpperCase().replace(/\s+/g,'');
-    const el=document.createElement('div');
-    el.className="bg-white rounded-xl border p-2 shadow-sm";
-    el.innerHTML=`
-      <div class="h-[120px] bg-[#F8F5F5] rounded-lg overflow-hidden grid place-items-center relative">
-        <img src="/img/${encodeURIComponent(cveLimpio)}.jpg?t=${Date.now()}" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid'">
-        <div class="hidden w-full h-full place-items-center text-[10px] text-slate-500 text-center">Sin foto<br>${cveLimpio}.jpg</div>
-      </div>
-      <div class="text-[11px] font-semibold mt-2 h-[32px] overflow-hidden leading-tight">${p.nombre}</div>
-      <div class="text-[10px] text-slate-400">${p.cve}</div>
-      <div class="text-[#0F5C4A] font-bold text-[13px]">$${Number(p.precio).toFixed(2)}</div>
-      <label class="mt-2 w-full bg-[#0E0E0E] text-white py-2 rounded-full text-[11px] font-bold grid place-items-center cursor-pointer hover:bg-black">
-        📷 Subir Foto
-        <input type="file" accept="image/*" class="hidden" onchange="subirFoto(this,'${p.cve}')">
-      </label>
-      <div class="status text-[10px] text-center mt-1 h-3"></div>
-    `;
+    const el=document.createElement('div'); el.className="bg-white rounded-xl border p-2";
+    el.innerHTML=`<div class="h-[120px] bg-[#F8F5F5] rounded-lg grid place-items-center overflow-hidden"><img src="/img/${encodeURIComponent(cveLimpio)}.jpg?t=${Date.now()}" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid'"><div class="hidden w-full h-full place-items-center text-[10px] text-slate-400 text-center">Sin foto<br>${cveLimpio}.jpg</div></div><div class="text-[11px] font-semibold mt-2 h-[32px] overflow-hidden">${p.nombre}</div><div class="text-[10px] text-slate-400">${p.cve}</div><div class="text-[#0F5C4A] font-bold text-[13px]">$${Number(p.precio).toFixed(2)}</div><label class="mt-2 w-full bg-[#0E0E0E] text-white py-2 rounded-full text-[11px] font-bold grid place-items-center cursor-pointer">📷 Subir Foto<input type="file" accept="image/*" class="hidden" onchange="subirFoto(this,'${p.cve}')"></label><div class="status text-[10px] text-center mt-1"></div>`;
     div.appendChild(el);
   });
 }
-
-async function subirFoto(input, cve){
-  const file=input.files[0];
-  if(!file) return;
+async function subirFoto(input,cve){
+  const file=input.files[0]; if(!file) return;
   const cveLimpio=cve.trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30);
-  const status=input.closest('label').nextElementSibling;
-  status.innerText='Subiendo '+cveLimpio+'...';
-
-  const fd=new FormData();
-  // IMPORTANTE: cve PRIMERO, luego imagen (fix multer)
-  fd.append('cve', cveLimpio);
-  fd.append('imagen', file, file.name);
-
-  try{
-    const res=await fetch(`/api/upload/producto?cve=${encodeURIComponent(cveLimpio)}`, {method:'POST', body: fd});
-    const j=await res.json();
-    console.log('Upload:', j);
-    if(j.ok){
-      status.innerText='✅ Guardado!';
-      setTimeout(()=>cargar(), 1000);
-    }else{
-      status.innerText='❌ '+(j.error||'Error');
-    }
-  }catch(e){
-    status.innerText='❌ '+e.message;
-  }
+  const status=input.closest('label').nextElementSibling; status.innerText='Subiendo...';
+  const fd=new FormData(); fd.append('cve',cveLimpio); fd.append('imagen',file,file.name);
+  try{ const res=await fetch(`/api/upload/producto?cve=${encodeURIComponent(cveLimpio)}`,{method:'POST',body:fd}); const j=await res.json(); if(j.ok){ status.innerText='✅ OK'; setTimeout(()=>cargar(),800);} else status.innerText='❌ '+j.error; }catch(e){ status.innerText='❌ '+e.message; }
 }
-
 async function cargarBanners(){
-  const r=await fetch('/api/admin/banners').then(r=>r.json());
-  document.getElementById('banners-list').innerHTML=r.map(b=>`<div class="bg-white p-2 rounded mb-2 flex justify-between"><span>${b.ID} - ${b.IMAGEN}</span><button onclick="borrarBanner(${b.ID})" class="text-red-500 text-[11px]">Borrar</button></div>`).join('');
+  const div=document.getElementById('banners-list'); div.innerHTML='Cargando...';
+  try{ const r=await fetch('/api/admin/banners').then(r=>r.json()); div.innerHTML=r.map(b=>`<div class="bg-white rounded-xl border p-2"><div class="h-[180px] bg-[#F8F5F5] rounded-lg overflow-hidden"><img src="${b.IMAGEN}?t=${Date.now()}" class="w-full h-full object-contain"></div><div class="flex justify-between items-center mt-2 text-[11px]"><span class="truncate">${b.ID} - ${b.IMAGEN}</span><button onclick="borrarBanner(${b.ID})" class="text-red-500 font-bold">Borrar</button></div></div>`).join('') || 'Sin banners'; }catch(e){ div.innerHTML='Error: '+e.message; }
 }
-async function borrarBanner(id){ await fetch('/api/admin/banners/'+id,{method:'DELETE'}); cargarBanners(); }
+async function subirBanner(){
+  const titulo=document.getElementById('banner-titulo').value; const file=document.getElementById('banner-file').files[0];
+  if(!file) return alert('Selecciona imagen');
+  const st=document.getElementById('banner-status'); st.innerText='Subiendo...';
+  const fd=new FormData(); fd.append('imagen',file);
+  try{ const up=await fetch('/api/upload/banner',{method:'POST',body:fd}).then(r=>r.json()); if(!up.ok) throw new Error('upload'); await fetch('/api/admin/banners',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo,imagen:up.file})}); st.innerText='✅ Banner guardado'; document.getElementById('banner-file').value=''; document.getElementById('banner-titulo').value=''; cargarBanners(); }catch(e){ st.innerText='❌ '+e.message; }
+}
+async function borrarBanner(id){ if(!confirm('Borrar banner?')) return; await fetch('/api/admin/banners/'+id,{method:'DELETE'}); cargarBanners(); }
 async function cargarPedidos(){
-  const r=await fetch('/api/admin/pedidos').then(r=>r.json());
-  document.getElementById('pedidos-list').innerHTML=r.slice(0,20).map(p=>`<div class="bg-white p-2 rounded mb-1 text-[12px]">#${p.NUM_PED} ${p.DES_CTE||p.CVE_CTE} $${(p.SUB_TOT+p.IVA_TOT).toFixed(2)}</div>`).join('');
+  const div=document.getElementById('pedidos-list'); div.innerHTML='Cargando...';
+  try{ const r=await fetch('/api/admin/pedidos').then(r=>r.json()); div.innerHTML=`<div class="text-[11px] mb-2 text-slate-500">${r.length} pedidos</div>`+r.map(p=>`<div class="border-b py-2 flex justify-between items-center"><div class="text-[12px]"><b>#${p.NUM_PED}</b> ${p.DES_CTE||p.CVE_CTE} - $${((p.SUB_TOT||0)+(p.IVA_TOT||0)).toFixed(2)}<br><span class="text-[10px] text-slate-400">${new Date(p.FEC_PED).toLocaleString()}</span></div><button onclick="verPedido(${p.NUM_PED})" class="bg-black text-white px-3 py-1 rounded-full text-[11px]">Ver</button></div>`).join(''); }catch(e){ div.innerHTML='Error: '+e.message; }
 }
-async function cargarClientes(){
-  const r=await fetch('/api/admin/clientes').then(r=>r.json());
-  document.getElementById('clientes-list').innerHTML=r.slice(0,20).map(c=>`<div class="bg-white p-2 rounded mb-1 text-[12px]">${c.CVE_CTE} - ${c.DES_CTE}</div>`).join('');
-}
-
-document.getElementById('buscador').addEventListener('input', ()=>render(todos));
+async function verPedido(folio){ try{ const r=await fetch('/api/admin/pedido/'+folio).then(r=>r.json()); const h=r.header; const d=r.detail; document.getElementById('pedido-detalle-cont').innerHTML=`<b>Folio ${h?.NUM_PED}</b><br>Cliente: ${h?.DES_CTE}<br>Tel: ${h?.CVE_CTE}<br>Dir: ${h?.DIRECCION||''}<br>${h?.PED_LAT? `<a href="https://www.google.com/maps?q=${h.PED_LAT},${h.PED_LNG}" target="_blank" class="underline text-blue-600">📍 Ver mapa</a><br>`:''}<hr class="my-2">${d.map(x=>`${x.CAN_PRO} x ${x.nombre||x.CVE_PRO} @ $${x.PRE_PRO}`).join('<br>')}<hr class="my-2"><b>Total $${((h?.SUB_TOT||0)+(h?.IVA_TOT||0)).toFixed(2)}</b>`; document.getElementById('pedido-detalle').classList.remove('hidden'); }catch(e){ alert(e.message); } }
+async function cargarClientes(){ const div=document.getElementById('clientes-list'); try{ const r=await fetch('/api/admin/clientes').then(r=>r.json()); div.innerHTML=r.map(c=>`<div class="border-b py-2 text-[12px]">${c.CVE_CTE} - ${c.DES_CTE}</div>`).join(''); }catch(e){ div.innerHTML='Error'; } }
+async function cargarConfig(){ try{ const c=await fetch('/api/config').then(r=>r.json()); document.getElementById('cfg-suc').value=c.ID_SUCURSAL||1; document.getElementById('cfg-emp').value=c.ID_EMP||''; document.getElementById('cfg-nom').value=c.NOMBRE_TIENDA||''; }catch{} }
+async function guardarConfig(){ const st=document.getElementById('cfg-status'); st.innerText='Guardando...'; try{ await fetch('/api/admin/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ID_SUCURSAL:parseInt(document.getElementById('cfg-suc').value),ID_EMP:document.getElementById('cfg-emp').value,NOMBRE_TIENDA:document.getElementById('cfg-nom').value})}); st.innerText='✅ Guardado'; }catch(e){ st.innerText='❌ '+e.message; } }
+document.getElementById('buscador')?.addEventListener('input',()=>render(todos));
 cargar();
 </script>
 </body>
