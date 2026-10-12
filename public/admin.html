@@ -1,32 +1,78 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin - Boutique B&G V43</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin B&G V44</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<style>*{font-family:Inter,sans-serif}</style>
+<style>*{font-family:Inter,sans-serif}.active{background:#0E0E0E;color:white}</style>
 </head>
-<body class="bg-[#F8F5F5]">
-<div class="max-w-[1200px] mx-auto p-4">
-<h1 class="font-bold text-[22px]">Productos - Subir Fotos V43</h1>
-<div class="bg-green-50 border border-green-200 rounded-xl px-4 py-2 mt-2 text-[12px]">💡 La foto se guarda como <b>/img/CVE.jpg</b> - FIX V43 volumen persistente - <a href="/api/debug/img" target="_blank" class="underline text-green-700">Ver fotos guardadas (/api/debug/img)</a></div>
-
-<div class="bg-white rounded-xl p-3 mt-3 flex gap-2">
-<input id="buscador" placeholder="Buscar..." class="flex-1 bg-[#F8F5F5] rounded-full px-4 py-2 text-[13px] outline-none">
-<button onclick="cargar()" class="bg-black text-white px-4 py-2 rounded-full text-[12px]">Recargar</button>
+<body class="bg-[#F8F5F5] flex min-h-screen">
+<!-- MENU IZQUIERDA -->
+<div class="w-[240px] bg-white border-r p-4 hidden md:block sticky top-0 h-screen">
+<h2 class="font-extrabold text-[18px]">Boutique B&G</h2>
+<p class="text-[11px] text-slate-400 mb-4">Admin V44 Fix Fotos</p>
+<div class="flex flex-col gap-1">
+<button onclick="showTab('productos')" id="tab-productos" class="active text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">📦 Productos / Fotos</button>
+<button onclick="showTab('banners')" id="tab-banners" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">🖼️ Banners</button>
+<button onclick="showTab('pedidos')" id="tab-pedidos" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">🧾 Pedidos</button>
+<button onclick="showTab('clientes')" id="tab-clientes" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">👥 Clientes</button>
+<button onclick="showTab('config')" id="tab-config" class="text-left px-4 py-2.5 rounded-full text-[13px] font-semibold">⚙️ Config</button>
+</div>
+<div class="mt-6">
+<a href="/api/debug/img" target="_blank" class="text-[11px] underline text-green-700">📁 Ver fotos guardadas (/api/debug/img)</a>
+<div id="debug-count" class="text-[11px] text-slate-500 mt-1"></div>
+</div>
 </div>
 
+<!-- CONTENIDO -->
+<div class="flex-1 p-4 max-w-[1200px] mx-auto">
+<div class="flex md:hidden gap-2 mb-3 overflow-auto">
+<button onclick="showTab('productos')" class="bg-black text-white px-3 py-1.5 rounded-full text-[11px]">Productos</button>
+<button onclick="showTab('banners')" class="bg-white border px-3 py-1.5 rounded-full text-[11px]">Banners</button>
+<button onclick="showTab('pedidos')" class="bg-white border px-3 py-1.5 rounded-full text-[11px]">Pedidos</button>
+</div>
+
+<!-- PRODUCTOS TAB -->
+<div id="sec-productos">
+<h1 class="font-bold text-[22px]">Productos - Subir Fotos V44</h1>
+<div class="bg-green-50 border border-green-200 rounded-xl px-4 py-2 mt-2 text-[12px]">💡 FIX V44: Se guarda como <b>/img/CVE.jpg</b> con volumen persistente. Si dice "Sin foto" es que no existe en el servidor.</div>
+<div class="bg-white rounded-xl p-3 mt-3 flex gap-2"><input id="buscador" placeholder="Buscar..." class="flex-1 bg-[#F8F5F5] rounded-full px-4 py-2 text-[13px] outline-none"><button onclick="cargar()" class="bg-black text-white px-4 py-2 rounded-full text-[12px]">Recargar</button></div>
 <div id="productos" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">Cargando...</div>
+</div>
+
+<!-- BANNERS TAB -->
+<div id="sec-banners" class="hidden"><h1 class="font-bold text-[20px]">Banners</h1><div id="banners-list" class="mt-3"></div></div>
+<div id="sec-pedidos" class="hidden"><h1 class="font-bold text-[20px]">Pedidos</h1><div id="pedidos-list" class="mt-3">Cargando...</div></div>
+<div id="sec-clientes" class="hidden"><h1 class="font-bold text-[20px]">Clientes</h1><div id="clientes-list" class="mt-3">Cargando...</div></div>
+<div id="sec-config" class="hidden"><h1 class="font-bold text-[20px]">Config</h1><div class="text-[12px] text-slate-500 mt-2">Config en /api/config</div></div>
 </div>
 
 <script>
 let todos=[];
+function showTab(t){
+  ['productos','banners','pedidos','clientes','config'].forEach(x=>{
+    document.getElementById('sec-'+x).classList.add('hidden');
+    document.getElementById('tab-'+x)?.classList.remove('active');
+  });
+  document.getElementById('sec-'+t).classList.remove('hidden');
+  document.getElementById('tab-'+t)?.classList.add('active');
+  if(t==='banners') cargarBanners();
+  if(t==='pedidos') cargarPedidos();
+  if(t==='clientes') cargarClientes();
+}
+
 async function cargar(){
-  const r = await fetch('/api/productos').then(r=>r.json());
+  const r=await fetch('/api/productos').then(r=>r.json());
   todos=r;
   render(r);
+  checkDebug();
+}
+async function checkDebug(){
+  try{
+    const d=await fetch('/api/debug/img').then(r=>r.json());
+    document.getElementById('debug-count').innerText=`${d.count||0} fotos en servidor: ${(d.files||[]).slice(0,3).join(', ')}`;
+  }catch{}
 }
 function render(lista){
   const div=document.getElementById('productos');
@@ -34,22 +80,22 @@ function render(lista){
   const q=document.getElementById('buscador').value.toLowerCase();
   const f=lista.filter(p=>p.cve.toLowerCase().includes(q)||p.nombre.toLowerCase().includes(q));
   f.forEach(p=>{
-    const cveLimpio = (p.cve||'').trim().toUpperCase().replace(/\s+/g,'');
+    const cveLimpio=(p.cve||'').trim().toUpperCase().replace(/\s+/g,'');
     const el=document.createElement('div');
-    el.className="bg-white rounded-xl border p-2";
+    el.className="bg-white rounded-xl border p-2 shadow-sm";
     el.innerHTML=`
-      <div class="h-[120px] bg-[#F8F5F5] rounded-lg overflow-hidden grid place-items-center">
+      <div class="h-[120px] bg-[#F8F5F5] rounded-lg overflow-hidden grid place-items-center relative">
         <img src="/img/${encodeURIComponent(cveLimpio)}.jpg?t=${Date.now()}" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid'">
-        <div class="hidden w-full h-full place-items-center text-[10px] text-slate-400">Sin foto<br>${cveLimpio}.jpg</div>
+        <div class="hidden w-full h-full place-items-center text-[10px] text-slate-500 text-center">Sin foto<br>${cveLimpio}.jpg</div>
       </div>
       <div class="text-[11px] font-semibold mt-2 h-[32px] overflow-hidden leading-tight">${p.nombre}</div>
       <div class="text-[10px] text-slate-400">${p.cve}</div>
       <div class="text-[#0F5C4A] font-bold text-[13px]">$${Number(p.precio).toFixed(2)}</div>
-      <label class="mt-2 w-full bg-[#0E0E0E] text-white py-2 rounded-full text-[11px] font-bold grid place-items-center cursor-pointer">
+      <label class="mt-2 w-full bg-[#0E0E0E] text-white py-2 rounded-full text-[11px] font-bold grid place-items-center cursor-pointer hover:bg-black">
         📷 Subir Foto
         <input type="file" accept="image/*" class="hidden" onchange="subirFoto(this,'${p.cve}')">
       </label>
-      <div class="status text-[10px] text-center mt-1"></div>
+      <div class="status text-[10px] text-center mt-1 h-3"></div>
     `;
     div.appendChild(el);
   });
@@ -58,34 +104,42 @@ function render(lista){
 async function subirFoto(input, cve){
   const file=input.files[0];
   if(!file) return;
-  const cveLimpio = cve.trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30);
-  const status = input.closest('div').parentElement.querySelector('.status');
-  status.innerText='Subiendo...';
+  const cveLimpio=cve.trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30);
+  const status=input.closest('label').nextElementSibling;
+  status.innerText='Subiendo '+cveLimpio+'...';
+
   const fd=new FormData();
-  fd.append('imagen', file);
+  // IMPORTANTE: cve PRIMERO, luego imagen (fix multer)
   fd.append('cve', cveLimpio);
+  fd.append('imagen', file, file.name);
 
   try{
-    // intenta las 2 rutas por compatibilidad
-    let res = await fetch('/api/upload/producto', {method:'POST', body: fd});
-    if(!res.ok){
-      const fd2=new FormData();
-      fd2.append('imagen', file);
-      fd2.append('cve', cveLimpio);
-      res = await fetch('/api/upload-imagen', {method:'POST', body: fd2});
-    }
+    const res=await fetch(`/api/upload/producto?cve=${encodeURIComponent(cveLimpio)}`, {method:'POST', body: fd});
     const j=await res.json();
-    console.log('Upload resp:', j);
+    console.log('Upload:', j);
     if(j.ok){
-      status.innerText='✅ Guardado! Recargando...';
-      // verifica que exista
-      setTimeout(()=>cargar(), 800);
+      status.innerText='✅ Guardado!';
+      setTimeout(()=>cargar(), 1000);
     }else{
       status.innerText='❌ '+(j.error||'Error');
     }
   }catch(e){
     status.innerText='❌ '+e.message;
   }
+}
+
+async function cargarBanners(){
+  const r=await fetch('/api/admin/banners').then(r=>r.json());
+  document.getElementById('banners-list').innerHTML=r.map(b=>`<div class="bg-white p-2 rounded mb-2 flex justify-between"><span>${b.ID} - ${b.IMAGEN}</span><button onclick="borrarBanner(${b.ID})" class="text-red-500 text-[11px]">Borrar</button></div>`).join('');
+}
+async function borrarBanner(id){ await fetch('/api/admin/banners/'+id,{method:'DELETE'}); cargarBanners(); }
+async function cargarPedidos(){
+  const r=await fetch('/api/admin/pedidos').then(r=>r.json());
+  document.getElementById('pedidos-list').innerHTML=r.slice(0,20).map(p=>`<div class="bg-white p-2 rounded mb-1 text-[12px]">#${p.NUM_PED} ${p.DES_CTE||p.CVE_CTE} $${(p.SUB_TOT+p.IVA_TOT).toFixed(2)}</div>`).join('');
+}
+async function cargarClientes(){
+  const r=await fetch('/api/admin/clientes').then(r=>r.json());
+  document.getElementById('clientes-list').innerHTML=r.slice(0,20).map(c=>`<div class="bg-white p-2 rounded mb-1 text-[12px]">${c.CVE_CTE} - ${c.DES_CTE}</div>`).join('');
 }
 
 document.getElementById('buscador').addEventListener('input', ()=>render(todos));
