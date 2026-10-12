@@ -10,11 +10,13 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// ---- FIX V45 - VOLUMEN PERSISTENTE ----
+// ---- FIX VOLUMEN PERSISTENTE V48 ----
 const imgDir = path.join(__dirname,'public','img');
 const bannersDir = path.join(__dirname,'public','banners');
 if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
 if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
+console.log('📁 IMG DIR:', imgDir, 'Files:', fs.readdirSync(imgDir).length);
+console.log('📁 BANNERS DIR:', bannersDir);
 
 app.use('/img', express.static(imgDir, {maxAge:0, etag:false}));
 app.use('/banners', express.static(bannersDir, {maxAge:0, etag:false}));
@@ -51,6 +53,7 @@ async function ensureTables(){
     const p=await getPool();
     await p.request().query(`IF COL_LENGTH('TH_PEDIDO','LAT') IS NULL ALTER TABLE TH_PEDIDO ADD LAT VARCHAR(20) NULL`);
     await p.request().query(`IF COL_LENGTH('TH_PEDIDO','LNG') IS NULL ALTER TABLE TH_PEDIDO ADD LNG VARCHAR(20) NULL`);
+    await p.request().query(`IF COL_LENGTH('TH_PEDIDO','STA_PED') IS NULL ALTER TABLE TH_PEDIDO ADD STA_PED VARCHAR(5) NULL`);
     await p.request().query(`IF COL_LENGTH('C_CLIENTE','PASSWORD') IS NULL ALTER TABLE C_CLIENTE ADD PASSWORD VARCHAR(100) NULL; IF COL_LENGTH('C_CLIENTE','DIRECCION') IS NULL ALTER TABLE C_CLIENTE ADD DIRECCION VARCHAR(200) NULL; IF COL_LENGTH('C_CLIENTE','LAT') IS NULL ALTER TABLE C_CLIENTE ADD LAT VARCHAR(20) NULL; IF COL_LENGTH('C_CLIENTE','LNG') IS NULL ALTER TABLE C_CLIENTE ADD LNG VARCHAR(20) NULL; IF COL_LENGTH('C_CLIENTE','EMPRESA') IS NULL ALTER TABLE C_CLIENTE ADD EMPRESA VARCHAR(20) NULL;`);
     await p.request().query(`IF COL_LENGTH('CRART','EMPRESA') IS NULL ALTER TABLE CRART ADD EMPRESA VARCHAR(20) NULL;`);
     await p.request().query(`IF OBJECT_ID('WEB_BANNERS') IS NULL CREATE TABLE WEB_BANNERS (ID INT IDENTITY(1,1) PRIMARY KEY, TITULO VARCHAR(100), IMAGEN VARCHAR(200), ACTIVO BIT DEFAULT 1, FECHA DATETIME DEFAULT GETDATE(), EMPRESA VARCHAR(20) NULL)`);
@@ -89,7 +92,7 @@ app.delete('/api/admin/banners/:id', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- TU FIX INTEGRADO ----
+// ---- UPLOADS FIX V48 - CVE PRIMERO ----
 const storageProd = multer.diskStorage({
   destination: (req,file,cb)=>{
     if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
@@ -134,6 +137,7 @@ app.get('/api/debug/img', (req,res)=>{
   }catch(e){ res.json({error:e.message}) }
 });
 
+// ---- PEDIDOS ----
 async function guardarPedido(req,res){
   const d=req.body;
   try{
@@ -193,7 +197,7 @@ app.post('/api/cliente/login', async(req,res)=>{
 app.get('/api/admin/pedidos', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
-    const r=await p.request().query(const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.STA_PED, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
+    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.STA_PED, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
     res.json(r.recordset);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
@@ -205,13 +209,32 @@ app.get('/api/admin/pedido/:folio', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
     const folio=parseInt(req.params.folio);
-    const h=await p.request().query(`SELECT th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, th.CVE_CTE, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.NUM_PED=${folio} AND th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}'`);
+    const h=await p.request().query(`SELECT th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.STA_PED, th.LAT as PED_LAT, th.LNG as PED_LNG, th.CVE_CTE, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.NUM_PED=${folio} AND th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}'`);
     const d=await p.request().query(`SELECT td.CAN_PRO, td.CVE_PRO, td.PRE_PRO, ISNULL(RTRIM(LTRIM(cr.nombre)),'') as nombre FROM TD_PEDIDO td LEFT JOIN CRART cr ON LTRIM(RTRIM(cr.Articulo))=LTRIM(RTRIM(td.CVE_PRO)) AND cr.EMPRESA='${cfg.ID_EMP}' WHERE td.NUM_PED=${folio} AND td.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND td.ID_EMP='${cfg.ID_EMP}' ORDER BY td.NUM_PAR`);
     res.json({header:h.recordset[0]||null, detail:d.recordset});
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.get('/api/health', (req,res)=>res.json({ok:true, v:45}));
+// ---- NUEVO V48 - Guardar direccion completa desde GPS y cambiar estatus ----
+app.post('/api/admin/cliente/direccion', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const {cve_cte, direccion, lat, lng}=req.body;
+    if(!cve_cte) return res.status(400).json({error:'cve_cte requerido'});
+    await p.request().input('cve', sql.VarChar(20), cve_cte).input('dir', sql.VarChar(200), direccion.slice(0,200)).input('lat', sql.VarChar(20), lat).input('lng', sql.VarChar(20), lng).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
+    res.json({ok:true, direccion});
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
+app.post('/api/admin/pedido/estatus', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const {folio, estatus}=req.body;
+    await p.request().input('folio', sql.Int, parseInt(folio)).input('est', sql.VarChar(5), estatus).input('suc', sql.SmallInt, cfg.ID_SUCURSAL).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`UPDATE TH_PEDIDO SET STA_PED=@est WHERE NUM_PED=@folio AND ID_SUCURSAL=@suc AND ID_EMP=@emp`);
+    res.json({ok:true});
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
+
+app.get('/api/health', (req,res)=>res.json({ok:true, v:48, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V45 FIX FOTOS en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V48 COMPLETO en '+PORT));
