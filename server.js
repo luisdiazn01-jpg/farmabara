@@ -98,10 +98,10 @@ const storageProd = multer.diskStorage({
     cb(null, imgDir);
   },
   filename: (req,file,cb)=>{
-    let cveRaw=(req.body.cve||'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
-    console.log('📸 Guardando producto:', cveRaw, 'original:', file.originalname);
-    cb(null, cveRaw+'.jpg');
-  }
+  let cveRaw = (req.query.cve || req.body.cve || 'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
+  console.log('📸 Guardando producto:', cveRaw);
+  cb(null, cveRaw+'.jpg');
+}
 });
 const storageBanner = multer.diskStorage({
   destination: (req,file,cb)=>{
