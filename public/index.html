@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Boutique B&G - Barrio Elegancia V41</title>
+<title>Boutique B&G - V42 Final</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>*{font-family:Inter,sans-serif}.no-scrollbar::-webkit-scrollbar{display:none}</style>
@@ -25,7 +25,7 @@
 <div class="flex gap-2 mt-3 overflow-auto no-scrollbar"><button class="shrink-0 bg-[#0F5C4A] text-white px-4 py-2 rounded-full text-[13px]">✨ Todo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Nuevo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Vestidos</button><button class="shrink-0 bg-[#FFE4E8] border px-4 py-2 rounded-full text-[13px]">Sale</button></div>
 </div>
 
-<!-- BANNER V41 FULL WIDTH - REEMPLAZA TODO -->
+<!-- BANNER V42 - AJUSTADO AUTOMATICO SIN CORTES -->
 <div id="banners" class="mt-4 hidden">
   <div id="banner-inner" class="relative rounded-[24px] overflow-hidden bg-white shadow-[0_12px_30px_rgba(0,0,0,.15)] w-full"></div>
   <div id="banner-dots" class="flex justify-center gap-2 mt-3"></div>
@@ -68,7 +68,6 @@ async function doLogin(){
 async function doRegistro(){ const r=await fetch('/api/cliente/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:document.getElementById('l-nom').value, telefono:document.getElementById('l-tel').value, password:document.getElementById('l-pass').value, direccion:document.getElementById('l-dir').value})}).then(r=>r.json()); if(r.ok){ alert('Registrado! Ahora entra'); toggleModo(); } else alert(r.error); }
 function logout(){ localStorage.removeItem('cliente_v2'); sessionStorage.removeItem('cliente_v2'); location.reload(); }
 
-// BANNER V41 - FULL COVER
 let bannerInterval=null;
 let currentBanner=0;
 function goSlide(n){
@@ -88,12 +87,9 @@ async function loadBanners(){
     document.getElementById('banners').classList.remove('hidden');
     const inner=document.getElementById('banner-inner');
     const dots=document.getElementById('banner-dots');
-    // FULL COVER - imagen ocupa todo
     inner.innerHTML=b.map((x,i)=>`
-      <div class="banner-slide absolute inset-0 w-full h-full transition-opacity duration-700 ${i===0?'opacity-100 z-[2]':'opacity-0 z-[1]'}">
-        <img src="${x.IMAGEN}?t=${Date.now()}" class="w-full h-full object-cover object-center" alt="${x.TITULO||'promo'}" onerror="this.style.display='none'">
-        ${x.TITULO? `<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
-        <div class="absolute bottom-0 left-0 right-0 p-5 md:p-8"><h2 class="text-white font-bold text-[18px] md:text-[28px] drop-shadow-[0_2px_10px_rgba(0,0,0,.8)]" style="font-family:'Playfair Display'">${x.TITULO}</h2></div>` : ''}
+      <div class="banner-slide absolute ${i===0?'relative':''} inset-0 w-full transition-opacity duration-700 ${i===0?'opacity-100 z-[2]':'opacity-0 z-[1]'}">
+        <img src="${x.IMAGEN}?t=${Date.now()}" class="w-full h-auto object-contain block rounded-[24px]" alt="banner">
       </div>
     `).join('');
     dots.innerHTML=b.map((_,i)=>`<div class="banner-dot h-2 rounded-full cursor-pointer transition-all ${i===0?'bg-[#0F5C4A] w-6':'bg-slate-300 w-2'}" onclick="goSlide(${i})"></div>`).join('');
