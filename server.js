@@ -193,7 +193,7 @@ app.post('/api/cliente/login', async(req,res)=>{
 app.get('/api/admin/pedidos', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
-    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
+    const r=await p.request().query(const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.STA_PED, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
     res.json(r.recordset);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
