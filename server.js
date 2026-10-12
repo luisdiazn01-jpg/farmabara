@@ -9,6 +9,17 @@ const multer = require('multer');
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// ---- FIX V43 - CREAR CARPETAS ANTES DE TODO (VOLUMEN VACIO) ----
+const imgDir = path.join(__dirname,'public','img');
+const bannersDir = path.join(__dirname,'public','banners');
+if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
+if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
+console.log('📁 IMG DIR:', imgDir);
+console.log('📁 BANNERS DIR:', bannersDir);
+
+app.use('/img', express.static(imgDir, {maxAge:0, etag:false}));
+app.use('/banners', express.static(bannersDir, {maxAge:0, etag:false}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const sqlConfig = {
@@ -80,22 +91,23 @@ app.delete('/api/admin/banners/:id', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- UPLOADS FIX V40 ----
-const imgDir = path.join(__dirname,'public','img'); if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
-const bannersDir = path.join(__dirname,'public','banners'); if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
-
-app.use('/img', express.static(imgDir));
-app.use('/banners', express.static(bannersDir));
-
+// ---- UPLOADS FIX V43 ----
 const storageProd = multer.diskStorage({
-  destination: (req,file,cb)=> cb(null, imgDir),
+  destination: (req,file,cb)=>{
+    if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
+    cb(null, imgDir);
+  },
   filename: (req,file,cb)=>{
-    let cveRaw=(req.body.cve||'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
+    let cveRaw=(req.body.cve||'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
+    console.log('📸 Guardando producto:', cveRaw, 'original:', file.originalname);
     cb(null, cveRaw+'.jpg');
   }
 });
 const storageBanner = multer.diskStorage({
-  destination: (req,file,cb)=> cb(null, bannersDir),
+  destination: (req,file,cb)=>{
+    if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
+    cb(null, bannersDir);
+  },
   filename: (req,file,cb)=> cb(null, 'banner_'+Date.now()+'.jpg')
 });
 const uploadProd = multer({storage: storageProd, limits:{fileSize:8*1024*1024}});
@@ -103,23 +115,25 @@ const uploadBanner = multer({storage: storageBanner, limits:{fileSize:8*1024*102
 
 app.post('/api/upload/banner', uploadBanner.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
+  console.log('✅ Banner guardado:', req.file.filename);
   res.json({ok:true, file:`/banners/${req.file.filename}`});
 });
 app.post('/api/upload/producto', uploadProd.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  res.json({ok:true, file:`/img/${req.file.filename}`, cve:req.file.filename.replace('.jpg','')});
+  console.log('✅ Producto guardado:', req.file.path);
+  res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve:req.file.filename.replace('.jpg','')});
 });
-// compatibilidad con viejo admin
 app.post('/api/upload-imagen', uploadProd.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  res.json({ok:true, file:`/img/${req.file.filename}`, cve:req.file.filename.replace('.jpg','')});
+  console.log('✅ Producto guardado (compat):', req.file.path);
+  res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve:req.file.filename.replace('.jpg','')});
 });
 
 app.get('/api/debug/img', (req,res)=>{
   try{
-    const files = fs.readdirSync(imgDir).slice(0,50);
-    const bfiles = fs.readdirSync(bannersDir).slice(0,20);
-    res.json({imgDir, files, bannersDir, bfiles});
+    const files = fs.existsSync(imgDir)? fs.readdirSync(imgDir) : [];
+    const bfiles = fs.existsSync(bannersDir)? fs.readdirSync(bannersDir) : [];
+    res.json({imgDir, count: files.length, files: files.slice(0,100), bannersDir, bfiles});
   }catch(e){ res.json({error:e.message}) }
 });
 
@@ -201,7 +215,7 @@ app.get('/api/admin/pedido/:folio', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.get('/api/health', (req,res)=>res.json({ok:true, v:40}));
+app.get('/api/health', (req,res)=>res.json({ok:true, v:43, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V40 FIX BANNERS en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V43 FIX VOLUMEN en '+PORT));
