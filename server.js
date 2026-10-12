@@ -10,13 +10,11 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// ---- FIX V43 - CREAR CARPETAS ANTES DE TODO (VOLUMEN VACIO) ----
+// ---- FIX V45 - VOLUMEN PERSISTENTE ----
 const imgDir = path.join(__dirname,'public','img');
 const bannersDir = path.join(__dirname,'public','banners');
 if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
 if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
-console.log('📁 IMG DIR:', imgDir);
-console.log('📁 BANNERS DIR:', bannersDir);
 
 app.use('/img', express.static(imgDir, {maxAge:0, etag:false}));
 app.use('/banners', express.static(bannersDir, {maxAge:0, etag:false}));
@@ -91,17 +89,17 @@ app.delete('/api/admin/banners/:id', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- UPLOADS FIX V43 ----
+// ---- TU FIX INTEGRADO ----
 const storageProd = multer.diskStorage({
   destination: (req,file,cb)=>{
     if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
     cb(null, imgDir);
   },
   filename: (req,file,cb)=>{
-  let cveRaw = (req.query.cve || req.body.cve || 'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
-  console.log('📸 Guardando producto:', cveRaw);
-  cb(null, cveRaw+'.jpg');
-}
+    let cveRaw = (req.query.cve || req.body.cve || 'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
+    console.log('📸 Guardando producto:', cveRaw);
+    cb(null, cveRaw+'.jpg');
+  }
 });
 const storageBanner = multer.diskStorage({
   destination: (req,file,cb)=>{
@@ -120,12 +118,11 @@ app.post('/api/upload/banner', uploadBanner.single('imagen'), (req,res)=>{
 });
 app.post('/api/upload/producto', uploadProd.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  console.log('✅ Producto guardado:', req.file.path);
+  console.log('✅ Producto guardado:', req.file.path, 'exists:', fs.existsSync(req.file.path));
   res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve:req.file.filename.replace('.jpg','')});
 });
 app.post('/api/upload-imagen', uploadProd.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  console.log('✅ Producto guardado (compat):', req.file.path);
   res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve:req.file.filename.replace('.jpg','')});
 });
 
@@ -133,11 +130,10 @@ app.get('/api/debug/img', (req,res)=>{
   try{
     const files = fs.existsSync(imgDir)? fs.readdirSync(imgDir) : [];
     const bfiles = fs.existsSync(bannersDir)? fs.readdirSync(bannersDir) : [];
-    res.json({imgDir, count: files.length, files: files.slice(0,100), bannersDir, bfiles});
+    res.json({imgDir, count: files.length, files: files.slice(0,100), bannersDir, bfiles, ok:true});
   }catch(e){ res.json({error:e.message}) }
 });
 
-// ---- PEDIDOS ----
 async function guardarPedido(req,res){
   const d=req.body;
   try{
@@ -215,7 +211,7 @@ app.get('/api/admin/pedido/:folio', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.get('/api/health', (req,res)=>res.json({ok:true, v:43, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req,res)=>res.json({ok:true, v:45}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V43 FIX VOLUMEN en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V45 FIX FOTOS en '+PORT));
