@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Boutique B&G - Barrio Elegancia</title>
+<title>Boutique B&G - Barrio Elegancia V41</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>*{font-family:Inter,sans-serif}.no-scrollbar::-webkit-scrollbar{display:none}</style>
@@ -24,7 +24,13 @@
 <div class="relative"><span class="absolute left-4 top-3.5 opacity-40">🔍</span><input id="buscador" class="w-full bg-[#F8F5F5] rounded-full py-3.5 pl-11 pr-4 text-[14px] outline-none" placeholder="Buscar ropa, accesorios, estilo..."></div>
 <div class="flex gap-2 mt-3 overflow-auto no-scrollbar"><button class="shrink-0 bg-[#0F5C4A] text-white px-4 py-2 rounded-full text-[13px]">✨ Todo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Nuevo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Vestidos</button><button class="shrink-0 bg-[#FFE4E8] border px-4 py-2 rounded-full text-[13px]">Sale</button></div>
 </div>
-<div id="banners" class="mt-4 hidden"><div id="banner-inner" class="rounded-[22px] h-[150px] flex overflow-x-auto snap-x no-scrollbar"></div><div id="banner-dots" class="flex justify-center gap-1.5 mt-2"></div></div>
+
+<!-- BANNER V41 FULL WIDTH - REEMPLAZA TODO -->
+<div id="banners" class="mt-4 hidden">
+  <div id="banner-inner" class="relative rounded-[24px] h-[200px] md:h-[360px] overflow-hidden bg-[#0E0E0E] shadow-[0_12px_30px_rgba(0,0,0,.15)]"></div>
+  <div id="banner-dots" class="flex justify-center gap-2 mt-3"></div>
+</div>
+
 </div>
 
 <div class="max-w-[1300px] mx-auto px-4 py-5 grid lg:grid-cols-[1fr_380px] gap-5">
@@ -61,24 +67,46 @@ async function doLogin(){
 }
 async function doRegistro(){ const r=await fetch('/api/cliente/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:document.getElementById('l-nom').value, telefono:document.getElementById('l-tel').value, password:document.getElementById('l-pass').value, direccion:document.getElementById('l-dir').value})}).then(r=>r.json()); if(r.ok){ alert('Registrado! Ahora entra'); toggleModo(); } else alert(r.error); }
 function logout(){ localStorage.removeItem('cliente_v2'); sessionStorage.removeItem('cliente_v2'); location.reload(); }
+
+// BANNER V41 - FULL COVER
+let bannerInterval=null;
+let currentBanner=0;
+function goSlide(n){
+  const slides=document.querySelectorAll('#banner-inner.banner-slide');
+  const dots=document.querySelectorAll('#banner-dots.banner-dot');
+  if(!slides.length) return;
+  slides.forEach(s=>{s.style.opacity='0'; s.style.zIndex='1'});
+  dots.forEach(d=>{d.classList.remove('bg-[#0F5C4A]','w-6'); d.classList.add('bg-slate-300','w-2')});
+  slides[n].style.opacity='1'; slides[n].style.zIndex='2';
+  if(dots[n]){ dots[n].classList.remove('bg-slate-300','w-2'); dots[n].classList.add('bg-[#0F5C4A]','w-6'); }
+  currentBanner=n;
+}
 async function loadBanners(){
   try{
     const b=await fetch('/api/banners').then(r=>r.json());
     if(!b.length) return;
-    document.getElementById('banners').style.display='block';
-    const inner=document.getElementById('banner-inner'); const dots=document.getElementById('banner-dots');
-    inner.innerHTML=b.map(x=>`<div class="min-w-full h-[150px] flex items-center justify-between px-6 text-white snap-start" style="background: linear-gradient(90deg, #0E0E0E 0%, #0F5C4A 100%)"><div><div class="bg-white/15 inline-block px-3 py-1 rounded-full text-[10px] mb-2">🔥 PROMO</div><h2 class="font-serif text-[20px] max-w-[220px] leading-tight">${x.TITULO||'Oferta'}</h2></div><img src="${x.IMAGEN}" class="h-[110px] rounded-xl object-cover max-w-[45%]" onerror="this.style.display='none'"></div>`).join('');
-    dots.innerHTML=b.map((_,i)=>`<div class="w-2 h-2 rounded-full ${i==0?'bg-[#0F5C4A]':'bg-slate-300'}"></div>`).join('');
-    let idx=0; setInterval(()=>{ idx=(idx+1)%b.length; inner.scrollTo({left: idx*inner.clientWidth, behavior:'smooth'}); },4000);
-  }catch{}
+    document.getElementById('banners').classList.remove('hidden');
+    const inner=document.getElementById('banner-inner');
+    const dots=document.getElementById('banner-dots');
+    // FULL COVER - imagen ocupa todo
+    inner.innerHTML=b.map((x,i)=>`
+      <div class="banner-slide absolute inset-0 w-full h-full transition-opacity duration-700 ${i===0?'opacity-100 z-[2]':'opacity-0 z-[1]'}">
+        <img src="${x.IMAGEN}?t=${Date.now()}" class="w-full h-full object-cover object-center" alt="${x.TITULO||'promo'}" onerror="this.style.display='none'">
+        ${x.TITULO? `<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-5 md:p-8"><h2 class="text-white font-bold text-[18px] md:text-[28px] drop-shadow-[0_2px_10px_rgba(0,0,0,.8)]" style="font-family:'Playfair Display'">${x.TITULO}</h2></div>` : ''}
+      </div>
+    `).join('');
+    dots.innerHTML=b.map((_,i)=>`<div class="banner-dot h-2 rounded-full cursor-pointer transition-all ${i===0?'bg-[#0F5C4A] w-6':'bg-slate-300 w-2'}" onclick="goSlide(${i})"></div>`).join('');
+    if(bannerInterval) clearInterval(bannerInterval);
+    if(b.length>1){
+      bannerInterval=setInterval(()=>{ const next=(currentBanner+1)%b.length; goSlide(next); }, 4500);
+    }
+  }catch(e){ console.log('banner err',e) }
 }
+
 async function init(){
   checkAuth(); loadBanners();
-  try{
-    const cfg=await fetch('/api/config').then(r=>r.json());
-   // Forzar Boutique B&G aunque el config diga SYSPTV
-      document.getElementById('nombre-tienda').innerText='Boutique B&G';
-  }catch{}
+  try{ document.getElementById('nombre-tienda').innerText='Boutique B&G'; }catch{}
   try{
     const res=await fetch('/api/productos');
     todos=await res.json();
