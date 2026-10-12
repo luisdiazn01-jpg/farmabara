@@ -80,77 +80,41 @@ app.delete('/api/admin/banners/:id', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.post('/api/cliente/registro', async(req,res)=>{
-  try{
-    const p=await getPool(); const cfg=await getConfigDB();
-    const {nombre, telefono, password, direccion}=req.body;
-    const tel=telefono.replace(/\D/g,'').slice(-10);
-    await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('pass', sql.VarChar(100), password).input('dir', sql.VarChar(200), direccion).input('emp', sql.VarChar(20), String(cfg.ID_EMP).trim())
-.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION,EMPRESA) VALUES (@cve,@des,@pass,@dir,@emp) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
-    res.json({ok:true});
-  }catch(e){ res.status(500).json({error:e.message}) }
-});
-
-app.post('/api/cliente/login', async(req,res)=>{
-  try{
-    const tel = (req.body.telefono||'').toString().trim();
-    const pass = (req.body.password||'').toString().trim();
-    if(tel.toLowerCase()==='admin' && pass==='Admin2026!'){
-      return res.json({ok:true, esAdmin:true, cliente:{CVE_CTE:'ADMIN', DES_CTE:'ADMINISTRADOR', DIRECCION:'ADMIN'}});
-    }
-    const p=await getPool(); const cfg=await getConfigDB();
-    const r=await p.request().input('cve', sql.VarChar(20), tel).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT * FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
-    if(r.recordset.length===0) return res.status(404).json({error:'No existe, regístrate'});
-    if(r.recordset[0].PASSWORD && r.recordset[0].PASSWORD!==pass) return res.status(401).json({error:'Contraseña incorrecta'});
-    res.json({ok:true, cliente:r.recordset[0]});
-  }catch(e){ res.status(500).json({error:e.message}) }
-});
-
-app.get('/api/admin/pedidos', async(req,res)=>{
-  try{
-    const p=await getPool(); const cfg=await getConfigDB();
-    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
-    res.json(r.recordset);
-  }catch(e){ res.status(500).json({error:e.message}) }
-});
-app.get('/api/admin/clientes', async(req,res)=>{
-  try{ const p=await getPool(); const cfg=await getConfigDB(); const r=await p.request().input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT TOP 100 * FROM C_CLIENTE WHERE EMPRESA=@emp ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
-});
-app.post('/api/admin/login', (req,res)=>{ if(req.body.user==='admin' && req.body.pass==='Admin2026!') res.json({ok:true}); else res.status(401).json({error:'No'}); });
-app.get('/api/admin/pedido/:folio', async(req,res)=>{
-  try{
-    const p=await getPool(); const cfg=await getConfigDB();
-    const folio=parseInt(req.params.folio);
-    const h=await p.request().query(`SELECT th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, th.CVE_CTE, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.NUM_PED=${folio} AND th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}'`);
-    const d=await p.request().query(`SELECT td.CAN_PRO, td.CVE_PRO, td.PRE_PRO, ISNULL(RTRIM(LTRIM(cr.nombre)),'') as nombre FROM TD_PEDIDO td LEFT JOIN CRART cr ON LTRIM(RTRIM(cr.Articulo))=LTRIM(RTRIM(td.CVE_PRO)) AND cr.EMPRESA='${cfg.ID_EMP}' WHERE td.NUM_PED=${folio} AND td.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND td.ID_EMP='${cfg.ID_EMP}' ORDER BY td.NUM_PAR`);
-    res.json({header:h.recordset[0]||null, detail:d.recordset});
-  }catch(e){ res.status(500).json({error:e.message}) }
-});
-
+// ---- UPLOADS FIX V40 ----
 const imgDir = path.join(__dirname,'public','img'); if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
 const bannersDir = path.join(__dirname,'public','banners'); if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
-const storage = multer.diskStorage({
-  destination:(req,file,cb)=>{
-    const isBanner = (req.body.tipo==='banner' || (req.body.cve||'').toString().startsWith('banner'));
-    cb(null, isBanner? bannersDir : imgDir);
-  },
-  filename:(req,file,cb)=>{
-    if(req.body.tipo==='banner'){
-      cb(null, 'banner_'+Date.now()+'.jpg');
-    } else {
-      let cveRaw=(req.body.cve||'PROD').toString().trim().toUpperCase().replace(/\s+/g,'');
-      cveRaw=cveRaw.replace(/[^A-Z0-9-_]/g,'').substring(0,30);
-      if(!cveRaw) cveRaw='PROD_'+Date.now();
-      cb(null, cveRaw+'.jpg');
-    }
+
+app.use('/img', express.static(imgDir));
+app.use('/banners', express.static(bannersDir));
+
+const storageProd = multer.diskStorage({
+  destination: (req,file,cb)=> cb(null, imgDir),
+  filename: (req,file,cb)=>{
+    let cveRaw=(req.body.cve||'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
+    cb(null, cveRaw+'.jpg');
   }
 });
-const upload = multer({storage, limits:{fileSize:5*1024*1024}});
-app.post('/api/upload-imagen', upload.single('imagen'), (req,res)=>{
-  if(!req.file) return res.status(400).json({error:'No file'});
-  if(req.body.tipo==='banner') res.json({ok:true, file:`/banners/${req.file.filename}`});
-  else res.json({ok:true, file:`/img/${req.file.filename}`, cve:req.file.filename.replace('.jpg','')});
+const storageBanner = multer.diskStorage({
+  destination: (req,file,cb)=> cb(null, bannersDir),
+  filename: (req,file,cb)=> cb(null, 'banner_'+Date.now()+'.jpg')
 });
+const uploadProd = multer({storage: storageProd, limits:{fileSize:8*1024*1024}});
+const uploadBanner = multer({storage: storageBanner, limits:{fileSize:8*1024*1024}});
+
+app.post('/api/upload/banner', uploadBanner.single('imagen'), (req,res)=>{
+  if(!req.file) return res.status(400).json({error:'No file'});
+  res.json({ok:true, file:`/banners/${req.file.filename}`});
+});
+app.post('/api/upload/producto', uploadProd.single('imagen'), (req,res)=>{
+  if(!req.file) return res.status(400).json({error:'No file'});
+  res.json({ok:true, file:`/img/${req.file.filename}`, cve:req.file.filename.replace('.jpg','')});
+});
+// compatibilidad con viejo admin
+app.post('/api/upload-imagen', uploadProd.single('imagen'), (req,res)=>{
+  if(!req.file) return res.status(400).json({error:'No file'});
+  res.json({ok:true, file:`/img/${req.file.filename}`, cve:req.file.filename.replace('.jpg','')});
+});
+
 app.get('/api/debug/img', (req,res)=>{
   try{
     const files = fs.readdirSync(imgDir).slice(0,50);
@@ -159,6 +123,7 @@ app.get('/api/debug/img', (req,res)=>{
   }catch(e){ res.json({error:e.message}) }
 });
 
+// ---- PEDIDOS ----
 async function guardarPedido(req,res){
   const d=req.body;
   try{
@@ -191,7 +156,52 @@ async function guardarPedido(req,res){
 }
 app.post('/api/pedidos', guardarPedido);
 app.post('/api/pedido-web', guardarPedido);
-app.get('/api/health', (req,res)=>res.json({ok:true}));
+
+app.post('/api/cliente/registro', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const {nombre, telefono, password, direccion}=req.body;
+    const tel=telefono.replace(/\D/g,'').slice(-10);
+    await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('pass', sql.VarChar(100), password).input('dir', sql.VarChar(200), direccion).input('emp', sql.VarChar(20), String(cfg.ID_EMP).trim())
+.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION,EMPRESA) VALUES (@cve,@des,@pass,@dir,@emp) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
+    res.json({ok:true});
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
+app.post('/api/cliente/login', async(req,res)=>{
+  try{
+    const tel = (req.body.telefono||'').toString().trim();
+    const pass = (req.body.password||'').toString().trim();
+    if(tel.toLowerCase()==='admin' && pass==='Admin2026!') return res.json({ok:true, esAdmin:true, cliente:{CVE_CTE:'ADMIN', DES_CTE:'ADMINISTRADOR', DIRECCION:'ADMIN'}});
+    const p=await getPool(); const cfg=await getConfigDB();
+    const r=await p.request().input('cve', sql.VarChar(20), tel).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT * FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
+    if(r.recordset.length===0) return res.status(404).json({error:'No existe, regístrate'});
+    if(r.recordset[0].PASSWORD && r.recordset[0].PASSWORD!==pass) return res.status(401).json({error:'Contraseña incorrecta'});
+    res.json({ok:true, cliente:r.recordset[0]});
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
+
+app.get('/api/admin/pedidos', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const r=await p.request().query(`SELECT TOP 100 th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, c.DES_CTE, c.CVE_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}' ORDER BY th.NUM_PED DESC`);
+    res.json(r.recordset);
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
+app.get('/api/admin/clientes', async(req,res)=>{
+  try{ const p=await getPool(); const cfg=await getConfigDB(); const r=await p.request().input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT TOP 100 * FROM C_CLIENTE WHERE EMPRESA=@emp ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
+});
+app.post('/api/admin/login', (req,res)=>{ if(req.body.user==='admin' && req.body.pass==='Admin2026!') res.json({ok:true}); else res.status(401).json({error:'No'}); });
+app.get('/api/admin/pedido/:folio', async(req,res)=>{
+  try{
+    const p=await getPool(); const cfg=await getConfigDB();
+    const folio=parseInt(req.params.folio);
+    const h=await p.request().query(`SELECT th.NUM_PED, th.FEC_PED, th.SUB_TOT, th.IVA_TOT, th.LAT as PED_LAT, th.LNG as PED_LNG, th.CVE_CTE, c.DES_CTE, c.DIRECCION, c.LAT, c.LNG FROM TH_PEDIDO th LEFT JOIN C_CLIENTE c ON th.CVE_CTE=c.CVE_CTE AND c.EMPRESA=th.ID_EMP WHERE th.NUM_PED=${folio} AND th.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND th.ID_EMP='${cfg.ID_EMP}'`);
+    const d=await p.request().query(`SELECT td.CAN_PRO, td.CVE_PRO, td.PRE_PRO, ISNULL(RTRIM(LTRIM(cr.nombre)),'') as nombre FROM TD_PEDIDO td LEFT JOIN CRART cr ON LTRIM(RTRIM(cr.Articulo))=LTRIM(RTRIM(td.CVE_PRO)) AND cr.EMPRESA='${cfg.ID_EMP}' WHERE td.NUM_PED=${folio} AND td.ID_SUCURSAL=${cfg.ID_SUCURSAL} AND td.ID_EMP='${cfg.ID_EMP}' ORDER BY td.NUM_PAR`);
+    res.json({header:h.recordset[0]||null, detail:d.recordset});
+  }catch(e){ res.status(500).json({error:e.message}) }
+});
+
+app.get('/api/health', (req,res)=>res.json({ok:true, v:40}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 const PORT=process.env.PORT||3000;
-app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V38 07082026 en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V40 FIX BANNERS en '+PORT));
