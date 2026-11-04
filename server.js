@@ -5,18 +5,17 @@ const path = require('path');
 const fs = require('fs');
 const sql = require('mssql');
 const multer = require('multer');
+const ftp = require('basic-ftp');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// ---- FIX VOLUMEN PERSISTENTE V48 ----
+// ---- DIRECTORIOS PERSISTENTES ----
 const imgDir = path.join(__dirname,'public','img');
 const bannersDir = path.join(__dirname,'public','banners');
 if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
 if(!fs.existsSync(bannersDir)) fs.mkdirSync(bannersDir,{recursive:true});
-console.log('📁 IMG DIR:', imgDir, 'Files:', fs.readdirSync(imgDir).length);
-console.log('📁 BANNERS DIR:', bannersDir);
 
 app.use('/img', express.static(imgDir, {maxAge:0, etag:false}));
 app.use('/banners', express.static(bannersDir, {maxAge:0, etag:false}));
@@ -64,6 +63,64 @@ async function ensureTables(){
 }
 ensureTables();
 
+// ---- FUNCIÓN DE DESCARGA AUTOMÁTICA DESDE EL FTP EN SEGUNDO PLANO ----
+async function obtenerImagenDesdeFTP(nombreArchivo) {
+  const localFilePath = path.join(imgDir, nombreArchivo);
+  if (fs.existsSync(localFilePath)) return true;
+
+  const client = new ftp.Client();
+  client.ftp.verbose = false;
+  try {
+    await client.access({
+      host: "sysptv.webhop.net",
+      user: "WEB",
+      password: "Sysptv_2026",
+      secure: false
+    });
+    
+    await client.downloadTo(localFilePath, nombreArchivo);
+    client.close();
+    return true;
+  } catch (err) {
+    client.close();
+    if (nombreArchivo.endsWith('.jpg')) {
+      const altName = nombreArchivo.replace('.jpg', '.JPG');
+      try {
+        const client2 = new ftp.Client();
+        await client2.access({
+          host: "sysptv.webhop.net",
+          user: "WEB",
+          password: "Sysptv_2026",
+          secure: false
+        });
+        await client2.downloadTo(localFilePath, altName);
+        client2.close();
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
+  }
+}
+
+// Endpoint proxy para servir imágenes del FTP descargándolas localmente
+app.get('/img-proxy/:sku', async (req, res) => {
+  const filename = req.params.sku;
+  const localFilePath = path.join(imgDir, filename);
+
+  if (fs.existsSync(localFilePath)) {
+    return res.sendFile(localFilePath);
+  }
+
+  const success = await obtenerImagenDesdeFTP(filename);
+  if (success && fs.existsSync(localFilePath)) {
+    return res.sendFile(localFilePath);
+  } else {
+    return res.status(404).send('Imagen no encontrada en FTP');
+  }
+});
+
 app.get('/api/config', async(req,res)=>res.json(await getConfigDB()));
 app.post('/api/admin/config', async(req,res)=>{
   try{
@@ -73,7 +130,7 @@ app.post('/api/admin/config', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- PRODUCTOS CON CÁLCULO DE PRECIO REDONDEADO Y URL DE IMAGEN DESDE EL FTP USANDO SKU ----
+// ---- PRODUCTOS CON CÁLCULO DE PRECIO Y PROXY DE IMAGEN FTP ----
 app.get('/api/productos', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
@@ -84,22 +141,18 @@ app.get('/api/productos', async(req,res)=>{
       const util = Number(prod.por_util) || 0;
       const imp = Number(prod.impuesto1) || 0;
 
-      // Fórmula solicitada: Precio base + PorUtil (%) + Impuesto1 (%) con redondeo
       const precioConUtil = pb * (1 + (util / 100));
       const precioFinal = Math.round(precioConUtil * (1 + (imp / 100)));
 
       const sku = prod.cve;
 
-      // URL base del servidor FTP / servicio web de imágenes usando el SKU
-      const baseFtpUrl = 'http://sysptv.webhop.net/img/'; 
-
       return {
         ...prod,
         precio: precioFinal,
         existencia: prod.existencia,
-        imagen: `${baseFtpUrl}${sku}.jpg`,
-        imagen2: `${baseFtpUrl}${sku}_2.jpg`,
-        imagen3: `${baseFtpUrl}${sku}_3.jpg`
+        imagen: `/img-proxy/${sku}.jpg`,
+        imagen2: `/img-proxy/${sku}_2.jpg`,
+        imagen3: `/img-proxy/${sku}_3.jpg`
       };
     });
 
@@ -120,7 +173,7 @@ app.delete('/api/admin/banners/:id', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- UPLOADS FIX V48 ----
+// ---- UPLOADS ----
 const storageProd = multer.diskStorage({
   destination: (req,file,cb)=>{
     if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
@@ -133,7 +186,6 @@ const storageProd = multer.diskStorage({
     if(index === '2') suffix = '_2';
     else if(index === '3') suffix = '_3';
     
-    console.log('📸 Guardando producto:', cveRaw, 'índice:', index);
     cb(null, cveRaw + suffix + '.jpg');
   }
 });
@@ -149,12 +201,10 @@ const uploadBanner = multer({storage: storageBanner, limits:{fileSize:8*1024*102
 
 app.post('/api/upload/banner', uploadBanner.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  console.log('✅ Banner guardado:', req.file.filename);
   res.json({ok:true, file:`/banners/${req.file.filename}`});
 });
 app.post('/api/upload/producto', uploadProd.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  console.log('✅ Producto guardado:', req.file.path, 'exists:', fs.existsSync(req.file.path));
   let baseName = req.file.filename.replace('.jpg','');
   res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve: baseName});
 });
@@ -172,7 +222,7 @@ app.get('/api/debug/img', (req,res)=>{
   }catch(e){ res.json({error:e.message}) }
 });
 
-// ---- PEDIDOS (Aplicando fórmula de precio venta en backend) ----
+// ---- PEDIDOS ----
 async function guardarPedido(req,res){
   const d=req.body;
   try{
@@ -191,7 +241,6 @@ async function guardarPedido(req,res){
     
     for(const prod of d.productos||[]){
       let cveLimpio=(prod.cve||prod.articulo||'').toString().trim().substring(0,20);
-      
       const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).input('emp', sql.VarChar(20), EMP).query(`SELECT CAST(Precio as decimal(18,2)) as precio, CAST(ISNULL(PorUtil,0) as decimal(18,2)) as por_util, CAST(ISNULL(Impuesto1,0) as decimal(18,2)) as impuesto1 FROM CRART WHERE LTRIM(RTRIM(Articulo))=@cve AND EMPRESA=@emp`);
       
       let rowP = rPrecio.recordset[0];
@@ -292,8 +341,8 @@ app.post('/api/admin/pedido/estatus', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.get('/api/health', (req,res)=>res.json({ok:true, v:50, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req,res)=>res.json({ok:true, v:51, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 
 const PORT=process.env.PORT||3000;
-app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V50 COMPLETO en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V51 COMPLETO en '+PORT));
