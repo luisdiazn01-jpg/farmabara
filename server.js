@@ -73,7 +73,7 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- DESCARGA DIRECTA DESDE LA RAÍZ DEL USUARIO FTP ----
+// ---- DESCARGA ROBUSTA CON SOPORTE DE MAYÚSCULAS/MINÚSCULAS FTP ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
   if (fs.existsSync(localFilePath)) return true;
@@ -89,60 +89,55 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       secure: false
     });
 
-    // 1. Probar descarga directa tal cual viene (ej. 041186000415.jpg o .JPG)
-    try {
-      await client.downloadTo(localFilePath, nombreArchivo);
-      client.close();
-      return true;
-    } catch (errFtp) {
-      // 2. Si es archivo .jpg, probar versión en mayúsculas .JPG
-      if (nombreArchivo.endsWith('.jpg')) {
-        const altJPG = nombreArchivo.replace('.jpg', '.JPG');
-        try {
-          await client.downloadTo(localFilePath, altJPG);
-          client.close();
-          return true;
-        } catch (e) {}
-      }
+    let descargado = false;
+    let intentos = [
+      nombreArchivo,
+      nombreArchivo.replace('.jpg', '.JPG'),
+      nombreArchivo.replace('.JPG', '.jpg'),
+      nombreArchivo.toLowerCase(),
+      nombreArchivo.toUpperCase()
+    ];
 
-      // 3. Si es archivo .JPG, probar versión en minúsculas .jpg
-      if (nombreArchivo.endsWith('.JPG')) {
-        const altjpg = nombreArchivo.replace('.JPG', '.jpg');
-        try {
-          await client.downloadTo(localFilePath, altjpg);
-          client.close();
-          return true;
-        } catch (e) {}
-      }
+    // Eliminar duplicados
+    intentos = [...new Set(intentos)];
 
-      // 4. Si se solicitó miniatura secundaria (SKU_2.jpg / SKU_3.jpg) y no existe, clonamos SKU.jpg
-      if (nombreArchivo.includes('_2.jpg') || nombreArchivo.includes('_3.jpg') || nombreArchivo.includes('_2.JPG') || nombreArchivo.includes('_3.JPG')) {
-        const baseSku = nombreArchivo.replace(/(_2|_3)\.(jpg|JPG)$/i, '');
-        const ext = nombreArchivo.endsWith('.JPG') ? '.JPG' : '.jpg';
-        const principalFile = baseSku + ext;
-        const localPrincipalPath = path.join(imgDir, principalFile);
-
-        try {
-          await client.downloadTo(localPrincipalPath, principalFile);
-          if (fs.existsSync(localPrincipalPath)) {
-            fs.copyFileSync(localPrincipalPath, localFilePath);
-            await client.uploadFrom(localFilePath, nombreArchivo);
-            client.close();
-            return true;
-          }
-        } catch (eClon) {}
-      }
-
-      client.close();
-      return false;
+    for (const remoteName of intentos) {
+      try {
+        await client.downloadTo(localFilePath, remoteName);
+        if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) {
+          descargado = true;
+          break;
+        }
+      } catch (e) {}
     }
+
+    // Si fallaron las principales y es miniatura secundaria, clonar la principal
+    if (!descargado && (nombreArchivo.includes('_2') || nombreArchivo.includes('_3'))) {
+      const baseSku = nombreArchivo.replace(/(_2|_3)\.(jpg|JPG)$/i, '');
+      const principalFiles = [baseSku + '.jpg', baseSku + '.JPG'];
+      for (const pFile of principalFiles) {
+        try {
+          const localPrincipalPath = path.join(imgDir, pFile);
+          await client.downloadTo(localPrincipalPath, pFile);
+          if (fs.existsSync(localPrincipalPath) && fs.statSync(localPrincipalPath).size > 0) {
+            fs.copyFileSync(localPrincipalPath, localFilePath);
+            try { await client.uploadFrom(localFilePath, nombreArchivo); } catch(upErr) {}
+            descargado = true;
+            break;
+          }
+        } catch (e) {}
+      }
+    }
+
+    client.close();
+    return descargado;
   } catch (err) {
     client.close();
     return false;
   }
 }
 
-// Proxy para servir imágenes
+// Proxy inteligente para servir imágenes
 app.get('/img-proxy/:sku', async (req, res) => {
   const filename = req.params.sku;
   const localFilePath = path.join(imgDir, filename);
@@ -155,9 +150,11 @@ app.get('/img-proxy/:sku', async (req, res) => {
   if (success && fs.existsSync(localFilePath)) {
     return res.sendFile(localFilePath);
   } else {
-    let altExt = filename.endsWith('.jpg') ? filename.replace('.jpg', '.JPG') : filename.replace('.JPG', '.jpg');
-    let altLocal = path.join(imgDir, altExt);
-    if (fs.existsSync(altLocal)) return res.sendFile(altLocal);
+    // Buscar variantes locales por si acaso
+    let alt1 = path.join(imgDir, filename.replace('.jpg', '.JPG'));
+    let alt2 = path.join(imgDir, filename.replace('.JPG', '.jpg'));
+    if (fs.existsSync(alt1)) return res.sendFile(alt1);
+    if (fs.existsSync(alt2)) return res.sendFile(alt2);
 
     const defaultPath = path.join(imgDir, 'default.jpg');
     if (fs.existsSync(defaultPath)) return res.sendFile(defaultPath);
@@ -406,8 +403,8 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, v: 56, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req, res) => res.json({ ok: true, v: 57, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V56 COMPLETO en ' + PORT));
+app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V57 COMPLETO en ' + PORT));
