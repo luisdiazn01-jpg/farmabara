@@ -73,10 +73,10 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- DESCARGA ROBUSTA CON SOPORTE DE MAYÚSCULAS/MINÚSCULAS FTP ----
+// ---- DESCARGA INTELIGENTE LISTANDO EL DIRECTORIO FTP ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
-  if (fs.existsSync(localFilePath)) return true;
+  if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) return true;
   if (!ftp) return false;
 
   const client = new ftp.Client();
@@ -89,48 +89,56 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       secure: false
     });
 
-    let descargado = false;
-    let intentos = [
-      nombreArchivo,
-      nombreArchivo.replace('.jpg', '.JPG'),
-      nombreArchivo.replace('.JPG', '.jpg'),
-      nombreArchivo.toLowerCase(),
-      nombreArchivo.toUpperCase()
-    ];
-
-    // Eliminar duplicados
-    intentos = [...new Set(intentos)];
-
-    for (const remoteName of intentos) {
-      try {
-        await client.downloadTo(localFilePath, remoteName);
-        if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) {
-          descargado = true;
+    // Listar archivos del directorio actual del FTP para encontrar coincidencia exacta sin importar mayúsculas
+    const listFiles = await client.list();
+    const baseClean = path.basename(nombreArchivo, path.extname(nombreArchivo)).toLowerCase();
+    
+    let archivoRemotoEncontrado = null;
+    
+    for (const file of listFiles) {
+      if (file.isFile) {
+        const fBase = path.basename(file.name, path.extname(file.name)).toLowerCase();
+        if (fBase === baseClean) {
+          archivoRemotoEncontrado = file.name;
           break;
         }
-      } catch (e) {}
+      }
     }
 
-    // Si fallaron las principales y es miniatura secundaria, clonar la principal
-    if (!descargado && (nombreArchivo.includes('_2') || nombreArchivo.includes('_3'))) {
-      const baseSku = nombreArchivo.replace(/(_2|_3)\.(jpg|JPG)$/i, '');
-      const principalFiles = [baseSku + '.jpg', baseSku + '.JPG'];
-      for (const pFile of principalFiles) {
-        try {
-          const localPrincipalPath = path.join(imgDir, pFile);
-          await client.downloadTo(localPrincipalPath, pFile);
-          if (fs.existsSync(localPrincipalPath) && fs.statSync(localPrincipalPath).size > 0) {
-            fs.copyFileSync(localPrincipalPath, localFilePath);
-            try { await client.uploadFrom(localFilePath, nombreArchivo); } catch(upErr) {}
-            descargado = true;
+    if (archivoRemotoEncontrado) {
+      await client.downloadTo(localFilePath, archivoRemotoEncontrado);
+      client.close();
+      return fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0;
+    }
+
+    // Si no se encontró por coincidencia exacta y es miniatura secundaria, clonar la principal
+    if (nombreArchivo.includes('_2') || nombreArchivo.includes('_3')) {
+      const baseSku = baseClean.replace(/(_2|_3)$/, '');
+      let principalRemota = null;
+      for (const file of listFiles) {
+        if (file.isFile) {
+          const fBase = path.basename(file.name, path.extname(file.name)).toLowerCase();
+          if (fBase === baseSku) {
+            principalRemota = file.name;
             break;
           }
-        } catch (e) {}
+        }
+      }
+
+      if (principalRemota) {
+        const localPrincipalPath = path.join(imgDir, principalRemota);
+        await client.downloadTo(localPrincipalPath, principalRemota);
+        if (fs.existsSync(localPrincipalPath) && fs.statSync(localPrincipalPath).size > 0) {
+          fs.copyFileSync(localPrincipalPath, localFilePath);
+          try { await client.uploadFrom(localFilePath, nombreArchivo); } catch(e) {}
+          client.close();
+          return true;
+        }
       }
     }
 
     client.close();
-    return descargado;
+    return false;
   } catch (err) {
     client.close();
     return false;
@@ -142,7 +150,7 @@ app.get('/img-proxy/:sku', async (req, res) => {
   const filename = req.params.sku;
   const localFilePath = path.join(imgDir, filename);
 
-  if (fs.existsSync(localFilePath)) {
+  if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) {
     return res.sendFile(localFilePath);
   }
 
@@ -150,11 +158,13 @@ app.get('/img-proxy/:sku', async (req, res) => {
   if (success && fs.existsSync(localFilePath)) {
     return res.sendFile(localFilePath);
   } else {
-    // Buscar variantes locales por si acaso
-    let alt1 = path.join(imgDir, filename.replace('.jpg', '.JPG'));
-    let alt2 = path.join(imgDir, filename.replace('.JPG', '.jpg'));
-    if (fs.existsSync(alt1)) return res.sendFile(alt1);
-    if (fs.existsSync(alt2)) return res.sendFile(alt2);
+    // Buscar variantes locales
+    const filesLocales = fs.existsSync(imgDir) ? fs.readdirSync(imgDir) : [];
+    const baseClean = path.basename(filename, path.extname(filename)).toLowerCase();
+    const matchLocal = filesLocales.find(f => path.basename(f, path.extname(f)).toLowerCase() === baseClean);
+    if (matchLocal) {
+      return res.sendFile(path.join(imgDir, matchLocal));
+    }
 
     const defaultPath = path.join(imgDir, 'default.jpg');
     if (fs.existsSync(defaultPath)) return res.sendFile(defaultPath);
@@ -403,8 +413,8 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, v: 57, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req, res) => res.json({ ok: true, v: 58, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V57 COMPLETO en ' + PORT));
+app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V58 COMPLETO en ' + PORT));
