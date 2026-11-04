@@ -73,7 +73,7 @@ app.post('/api/admin/config', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- PRODUCTOS CON CÁLCULO DE PRECIO (Precio + PorUtil % + Impuesto1 %) y existencias1 ----
+// ---- PRODUCTOS CON CÁLCULO DE PRECIO REDONDEADO Y URL DE IMAGEN DESDE EL FTP USANDO SKU ----
 app.get('/api/productos', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
@@ -84,22 +84,22 @@ app.get('/api/productos', async(req,res)=>{
       const util = Number(prod.por_util) || 0;
       const imp = Number(prod.impuesto1) || 0;
 
-      // Fórmula solicitada: Precio base + PorUtil (%) + Impuesto1 (%)
+      // Fórmula solicitada: Precio base + PorUtil (%) + Impuesto1 (%) con redondeo
       const precioConUtil = pb * (1 + (util / 100));
-      const precioFinal = precioConUtil * (1 + (imp / 100));
+      const precioFinal = Math.round(precioConUtil * (1 + (imp / 100)));
 
-      const cveClean = prod.cve;
-      const img1Path = path.join(imgDir, cveClean + '.jpg');
-      const img2Path = path.join(imgDir, cveClean + '_2.jpg');
-      const img3Path = path.join(imgDir, cveClean + '_3.jpg');
+      const sku = prod.cve;
+
+      // URL base del servidor FTP / servicio web de imágenes usando el SKU
+      const baseFtpUrl = 'http://sysptv.webhop.net/img/'; 
 
       return {
         ...prod,
-        precio: Number(precioFinal.toFixed(2)),
+        precio: precioFinal,
         existencia: prod.existencia,
-        imagen: fs.existsSync(img1Path) ? `/img/${cveClean}.jpg?t=${Date.now()}` : null,
-        imagen2: fs.existsSync(img2Path) ? `/img/${cveClean}_2.jpg?t=${Date.now()}` : null,
-        imagen3: fs.existsSync(img3Path) ? `/img/${cveClean}_3.jpg?t=${Date.now()}` : null
+        imagen: `${baseFtpUrl}${sku}.jpg`,
+        imagen2: `${baseFtpUrl}${sku}_2.jpg`,
+        imagen3: `${baseFtpUrl}${sku}_3.jpg`
       };
     });
 
@@ -120,7 +120,7 @@ app.delete('/api/admin/banners/:id', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- UPLOADS FIX V48 - SOPORTE MÚLTIPLES IMÁGENES (1, 2, 3) ----
+// ---- UPLOADS FIX V48 ----
 const storageProd = multer.diskStorage({
   destination: (req,file,cb)=>{
     if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
@@ -192,7 +192,6 @@ async function guardarPedido(req,res){
     for(const prod of d.productos||[]){
       let cveLimpio=(prod.cve||prod.articulo||'').toString().trim().substring(0,20);
       
-      // Obtener Precio, PorUtil e Impuesto1 para recalcular con la misma fórmula
       const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).input('emp', sql.VarChar(20), EMP).query(`SELECT CAST(Precio as decimal(18,2)) as precio, CAST(ISNULL(PorUtil,0) as decimal(18,2)) as por_util, CAST(ISNULL(Impuesto1,0) as decimal(18,2)) as impuesto1 FROM CRART WHERE LTRIM(RTRIM(Articulo))=@cve AND EMPRESA=@emp`);
       
       let rowP = rPrecio.recordset[0];
@@ -202,7 +201,7 @@ async function guardarPedido(req,res){
         let util = Number(rowP.por_util) || 0;
         let imp = Number(rowP.impuesto1) || 0;
         let precioConUtil = pb * (1 + (util / 100));
-        precioReal = precioConUtil * (1 + (imp / 100));
+        precioReal = Math.round(precioConUtil * (1 + (imp / 100)));
       } else {
         precioReal = prod.precio || 0;
       }
@@ -293,8 +292,8 @@ app.post('/api/admin/pedido/estatus', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.get('/api/health', (req,res)=>res.json({ok:true, v:49, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req,res)=>res.json({ok:true, v:50, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 
 const PORT=process.env.PORT||3000;
-app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V49 COMPLETO en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V50 COMPLETO en '+PORT));
