@@ -73,7 +73,7 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- DESCARGA FTP PROTEGIDA (CERO RIESGO DE CRASH) ----
+// ---- DESCARGA FTP ROBUSTA Y DIRECTA ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
   if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) return true;
@@ -89,14 +89,12 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       secure: false
     });
 
+    // Como el usuario WEB apunta directo a la carpeta de la empresa, listamos directamente la raíz de la sesión
     let listFiles = [];
     try {
       listFiles = await client.list();
-    } catch (eList) {
-      try {
-        await client.cd('07082026');
-        listFiles = await client.list();
-      } catch (eCd) {}
+    } catch (e) {
+      listFiles = [];
     }
 
     const baseClean = path.basename(nombreArchivo, path.extname(nombreArchivo)).toLowerCase();
@@ -112,10 +110,45 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       }
     }
 
-    if (archivoRemotoEncontrado) {
+    // Si no se encontró por lista, intentamos descarga directa probando variantes de nombre/extensión
+    if (!archivoRemotoEncontrado) {
+      const variantes = [
+        nombreArchivo,
+        nombreArchivo.replace('.jpg', '.JPG'),
+        nombreArchivo.replace('.JPG', '.jpg'),
+        baseClean + '.JPG',
+        baseClean + '.jpg'
+      ];
+      for (const v of variantes) {
+        try {
+          await client.downloadTo(localFilePath, v);
+          if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) {
+            client.close();
+            return true;
+          }
+        } catch (errVar) {}
+      }
+    } else {
       await client.downloadTo(localFilePath, archivoRemotoEncontrado);
       client.close();
       return fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0;
+    }
+
+    // Si es imagen secundaria (_2 o _3) y no está, clonar la principal local o remota
+    if (nombreArchivo.includes('_2') || nombreArchivo.includes('_3')) {
+      const baseSku = baseClean.replace(/(_2|_3)$/, '');
+      const principalLocal = path.join(imgDir, baseSku + '.jpg');
+      const principalLocalUpper = path.join(imgDir, baseSku + '.JPG');
+      
+      if (fs.existsSync(principalLocal)) {
+        fs.copyFileSync(principalLocal, localFilePath);
+        client.close();
+        return true;
+      } else if (fs.existsSync(principalLocalUpper)) {
+        fs.copyFileSync(principalLocalUpper, localFilePath);
+        client.close();
+        return true;
+      }
     }
 
     client.close();
@@ -140,11 +173,21 @@ app.get('/img-proxy/:sku', async (req, res) => {
     if (success && fs.existsSync(localFilePath)) {
       return res.sendFile(localFilePath);
     } else {
+      // Buscar variantes locales
       const filesLocales = fs.existsSync(imgDir) ? fs.readdirSync(imgDir) : [];
       const baseClean = path.basename(filename, path.extname(filename)).toLowerCase();
       const matchLocal = filesLocales.find(f => path.basename(f, path.extname(f)).toLowerCase() === baseClean);
       if (matchLocal) {
         return res.sendFile(path.join(imgDir, matchLocal));
+      }
+
+      // Si es miniatura secundaria y falló todo, usar la principal del mismo producto como comodín visual
+      if (filename.includes('_2') || filename.includes('_3')) {
+        const baseSku = baseClean.replace(/(_2|_3)$/, '');
+        const matchPrin = filesLocales.find(f => path.basename(f, path.extname(f)).toLowerCase() === baseSku);
+        if (matchPrin) {
+          return res.sendFile(path.join(imgDir, matchPrin));
+        }
       }
 
       const defaultPath = path.join(imgDir, 'default.jpg');
@@ -397,8 +440,8 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, v: 60, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req, res) => res.json({ ok: true, v: 61, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V60 COMPLETO en ' + PORT));
+app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V61 COMPLETO en ' + PORT));
