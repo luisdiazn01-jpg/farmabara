@@ -121,6 +121,21 @@ function cambiarImagenProd(cveClean, urlImg) {
   }
 }
 
+// Función auxiliar de respaldo para manejar extensiones .jpg o .JPG automáticamente
+function handleImgError(imgElement, originalUrl) {
+  if (!imgElement.dataset.retried) {
+    imgElement.dataset.retried = "true";
+    if (originalUrl.includes('.jpg')) {
+      imgElement.src = originalUrl.replace('.jpg', '.JPG');
+      return;
+    } else if (originalUrl.includes('.JPG')) {
+      imgElement.src = originalUrl.replace('.JPG', '.jpg');
+      return;
+    }
+  }
+  imgElement.src = '/img/default.jpg';
+}
+
 function renderProductos(lista){
   const div=document.getElementById('productos');
   div.innerHTML='';
@@ -130,7 +145,6 @@ function renderProductos(lista){
     const cveRaw=(p.cve||'').trim();
     const cveUpper=cveRaw.toUpperCase().replace(/\s+/g,'');
     
-    // REDONDEO DEL PRECIO DE VENTA
     const pre = Math.round(Number(p.precio || 0));
     const existencia = Number(p.existencia || 0);
     
@@ -147,16 +161,16 @@ function renderProductos(lista){
     let miniaturasHtml = '';
     if(img2 || img3) {
       miniaturasHtml = `<div class="flex gap-1.5 mt-2.5 justify-center items-center">
-        <button onclick="cambiarImagenProd('${cveUpper}', '${img1}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img1}" class="w-full h-full object-cover"></button>
-        ${img2 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img2}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img2}" class="w-full h-full object-cover"></button>` : ''}
-        ${img3 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img3}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img3}" class="w-full h-full object-cover"></button>` : ''}
+        <button onclick="cambiarImagenProd('${cveUpper}', '${img1}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img1}" class="w-full h-full object-cover" onerror="handleImgError(this, '${img1}')"></button>
+        ${img2 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img2}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img2}" class="w-full h-full object-cover" onerror="handleImgError(this, '${img2}')"></button>` : ''}
+        ${img3 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img3}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img3}" class="w-full h-full object-cover" onerror="handleImgError(this, '${img3}')"></button>` : ''}
       </div>`;
     }
 
     el.innerHTML=`
       <div>
         <div class="h-[170px] bg-[#F8F9FA] flex items-center justify-center overflow-hidden relative group">
-          <img id="img-prod-${cveUpper}" src="${img1}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.src='/img/default.jpg'">
+          <img id="img-prod-${cveUpper}" src="${img1}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="handleImgError(this, '${img1}')">
           <span class="absolute top-2.5 left-2.5 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm ${tagClass}">${tag}</span>
         </div>
         <div class="product-content p-3.5">
