@@ -130,12 +130,11 @@ function renderProductos(lista){
     const cveRaw=(p.cve||'').trim();
     const cveUpper=cveRaw.toUpperCase().replace(/\s+/g,'');
     
-    // REDONDEO DEL PRECIO DE VENTA (redondeado al entero más cercano o con Math.round según prefieras, aquí redondeado a número entero para mayor limpieza visual como en apps modernas)
+    // REDONDEO DEL PRECIO DE VENTA
     const pre = Math.round(Number(p.precio || 0));
     const existencia = Number(p.existencia || 0);
     
     const el=document.createElement('div');
-    // Diseño mejorado de tarjeta tipo app comercial moderna
     el.className="bg-white rounded-[22px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col justify-between transition-all duration-300 hover:shadow-[0_8px_25px_rgba(0,0,0,0.08)] hover:-translate-y-0.5";
     
     const img1 = p.imagen || `/img/${encodeURIComponent(cveUpper)}.jpg`;
@@ -160,7 +159,7 @@ function renderProductos(lista){
           <img id="img-prod-${cveUpper}" src="${img1}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.src='/img/default.jpg'">
           <span class="absolute top-2.5 left-2.5 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm ${tagClass}">${tag}</span>
         </div>
-        <div class="p-3.5">
+        <div class="product-content p-3.5">
           <div class="text-[13px] font-semibold text-gray-800 leading-snug h-[38px] overflow-hidden">${p.nombre||cveRaw}</div>
           <div class="flex justify-between items-center mt-1 text-[11px] text-gray-400 font-medium">
             <span>Ref: ${cveRaw}</span>
@@ -179,7 +178,7 @@ function renderProductos(lista){
     btn.className="w-full bg-[#0E0E0E] hover:bg-black text-white py-2.5 rounded-xl text-[12px] font-bold mt-2 shadow-sm transition active:scale-[0.98]";
     btn.innerText="COMPRAR";
     btn.onclick=()=>agregar(cveRaw, p.nombre||cveRaw, pre);
-    el.querySelector('.p-3.5').appendChild(btn);
+    el.querySelector('.product-content').appendChild(btn);
     frag.appendChild(el);
   });
   div.appendChild(frag);
