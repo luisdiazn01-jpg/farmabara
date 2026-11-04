@@ -39,6 +39,7 @@ async function getPool(){
   pool=await sql.connect(sqlConfig);
   return pool;
 }
+
 async function getConfigDB(){
   try{
     const p=await getPool();
@@ -48,6 +49,7 @@ async function getConfigDB(){
     return r.recordset[0];
   }catch{ return {ID_SUCURSAL:1, ID_EMP:'07082026', NOMBRE_TIENDA:'BOUTIQUE BYG'}; }
 }
+
 async function ensureTables(){
   try{
     const p=await getPool();
@@ -71,11 +73,37 @@ app.post('/api/admin/config', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
+// ---- PRODUCTOS CON CÁLCULO DE PRECIO (Precio + PorUtil % + Impuesto1 %) y existencias1 ----
 app.get('/api/productos', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
-    const r=await p.request().input('emp', sql.VarChar(20), String(cfg.ID_EMP).trim()).query(`SELECT TOP 500 RTRIM(LTRIM(Articulo)) as cve, RTRIM(LTRIM(nombre)) as nombre, CAST(ISNULL(Precio,0) as decimal(18,2)) as precio, 10 as existencia FROM CRART WHERE EMPRESA=@emp AND LTRIM(RTRIM(Articulo))<>'' AND LTRIM(RTRIM(ISNULL(nombre,'')))<>'' AND ISNULL(Precio,0)>0 AND nombre NOT LIKE '%null%' ORDER BY nombre`);
-    res.json(r.recordset);
+    const r=await p.request().input('emp', sql.VarChar(20), String(cfg.ID_EMP).trim()).query(`SELECT TOP 500 RTRIM(LTRIM(Articulo)) as cve, RTRIM(LTRIM(nombre)) as nombre, CAST(ISNULL(Precio,0) as decimal(18,2)) as precio_base, CAST(ISNULL(PorUtil,0) as decimal(18,2)) as por_util, CAST(ISNULL(Impuesto1,0) as decimal(18,2)) as impuesto1, CAST(ISNULL(existencias1,0) as decimal(18,3)) as existencia FROM CRART WHERE EMPRESA=@emp AND LTRIM(RTRIM(Articulo))<>'' AND LTRIM(RTRIM(ISNULL(nombre,'')))<>'' AND ISNULL(Precio,0)>0 AND nombre NOT LIKE '%null%' ORDER BY nombre`);
+    
+    const productos = r.recordset.map(prod => {
+      const pb = Number(prod.precio_base) || 0;
+      const util = Number(prod.por_util) || 0;
+      const imp = Number(prod.impuesto1) || 0;
+
+      // Fórmula solicitada: Precio base + PorUtil (%) + Impuesto1 (%)
+      const precioConUtil = pb * (1 + (util / 100));
+      const precioFinal = precioConUtil * (1 + (imp / 100));
+
+      const cveClean = prod.cve;
+      const img1Path = path.join(imgDir, cveClean + '.jpg');
+      const img2Path = path.join(imgDir, cveClean + '_2.jpg');
+      const img3Path = path.join(imgDir, cveClean + '_3.jpg');
+
+      return {
+        ...prod,
+        precio: Number(precioFinal.toFixed(2)),
+        existencia: prod.existencia,
+        imagen: fs.existsSync(img1Path) ? `/img/${cveClean}.jpg?t=${Date.now()}` : null,
+        imagen2: fs.existsSync(img2Path) ? `/img/${cveClean}_2.jpg?t=${Date.now()}` : null,
+        imagen3: fs.existsSync(img3Path) ? `/img/${cveClean}_3.jpg?t=${Date.now()}` : null
+      };
+    });
+
+    res.json(productos);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
@@ -92,7 +120,7 @@ app.delete('/api/admin/banners/:id', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); await p.request().input('id', sql.Int, parseInt(req.params.id)).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`DELETE FROM WEB_BANNERS WHERE ID=@id AND EMPRESA=@emp`); res.json({ok:true}); }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- UPLOADS FIX V48 - CVE PRIMERO ----
+// ---- UPLOADS FIX V48 - SOPORTE MÚLTIPLES IMÁGENES (1, 2, 3) ----
 const storageProd = multer.diskStorage({
   destination: (req,file,cb)=>{
     if(!fs.existsSync(imgDir)) fs.mkdirSync(imgDir,{recursive:true});
@@ -100,8 +128,13 @@ const storageProd = multer.diskStorage({
   },
   filename: (req,file,cb)=>{
     let cveRaw = (req.query.cve || req.body.cve || 'PROD').toString().trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9\-_]/g,'').substring(0,30) || 'PROD_'+Date.now();
-    console.log('📸 Guardando producto:', cveRaw);
-    cb(null, cveRaw+'.jpg');
+    let index = (req.query.index || req.body.index || '1').toString().trim();
+    let suffix = '';
+    if(index === '2') suffix = '_2';
+    else if(index === '3') suffix = '_3';
+    
+    console.log('📸 Guardando producto:', cveRaw, 'índice:', index);
+    cb(null, cveRaw + suffix + '.jpg');
   }
 });
 const storageBanner = multer.diskStorage({
@@ -122,11 +155,13 @@ app.post('/api/upload/banner', uploadBanner.single('imagen'), (req,res)=>{
 app.post('/api/upload/producto', uploadProd.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
   console.log('✅ Producto guardado:', req.file.path, 'exists:', fs.existsSync(req.file.path));
-  res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve:req.file.filename.replace('.jpg','')});
+  let baseName = req.file.filename.replace('.jpg','');
+  res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve: baseName});
 });
 app.post('/api/upload-imagen', uploadProd.single('imagen'), (req,res)=>{
   if(!req.file) return res.status(400).json({error:'No file'});
-  res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve:req.file.filename.replace('.jpg','')});
+  let baseName = req.file.filename.replace('.jpg','');
+  res.json({ok:true, file:`/img/${req.file.filename}?t=${Date.now()}`, cve: baseName});
 });
 
 app.get('/api/debug/img', (req,res)=>{
@@ -137,7 +172,7 @@ app.get('/api/debug/img', (req,res)=>{
   }catch(e){ res.json({error:e.message}) }
 });
 
-// ---- PEDIDOS ----
+// ---- PEDIDOS (Aplicando fórmula de precio venta en backend) ----
 async function guardarPedido(req,res){
   const d=req.body;
   try{
@@ -146,24 +181,44 @@ async function guardarPedido(req,res){
     const tel=(d.telefono||'').toString().replace(/\D/g,'').slice(-10) || 'W'+Date.now().toString().slice(-8);
     const nombre=(d.nombre||'CLIENTE WEB').replace(/'/g,"").slice(0,100);
     const direccion=(d.direccion||'').slice(0,200); const lat=d.lat||null; const lng=d.lng||null;
+    
     await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('dir', sql.VarChar(200), direccion).input('lat', sql.VarChar(20), lat).input('lng', sql.VarChar(20), lng).input('emp', sql.VarChar(20), EMP)
-.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG,EMPRESA) VALUES (@cve,@des,@dir,@lat,@lng,@emp) ELSE UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
+    .query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,DIRECCION,LAT,LNG,EMPRESA) VALUES (@cve,@des,@dir,@lat,@lng,@emp) ELSE UPDATE C_CLIENTE SET DIRECCION=@dir, LAT=@lat, LNG=@lng WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
+    
     const fr=await p.request().query(`SELECT ISNULL(MAX(NUM_PED),0)+1 as folio FROM TH_PEDIDO WHERE ID_SUCURSAL=${SUC} AND ID_EMP='${EMP}'`);
     const folio=fr.recordset[0].folio;
     let totalReal=0; let productosReales=[];
+    
     for(const prod of d.productos||[]){
       let cveLimpio=(prod.cve||prod.articulo||'').toString().trim().substring(0,20);
-      const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).input('emp', sql.VarChar(20), EMP).query(`SELECT CAST(Precio as decimal(18,2)) as precio FROM CRART WHERE LTRIM(RTRIM(Articulo))=@cve AND EMPRESA=@emp`);
-      let precioReal = rPrecio.recordset[0]?.precio || prod.precio || 0;
-      productosReales.push({cve:cveLimpio, cant: prod.cantidad, precio: precioReal}); totalReal+=precioReal*prod.cantidad;
+      
+      // Obtener Precio, PorUtil e Impuesto1 para recalcular con la misma fórmula
+      const rPrecio=await p.request().input('cve', sql.VarChar(20), cveLimpio).input('emp', sql.VarChar(20), EMP).query(`SELECT CAST(Precio as decimal(18,2)) as precio, CAST(ISNULL(PorUtil,0) as decimal(18,2)) as por_util, CAST(ISNULL(Impuesto1,0) as decimal(18,2)) as impuesto1 FROM CRART WHERE LTRIM(RTRIM(Articulo))=@cve AND EMPRESA=@emp`);
+      
+      let rowP = rPrecio.recordset[0];
+      let precioReal = 0;
+      if(rowP){
+        let pb = Number(rowP.precio) || 0;
+        let util = Number(rowP.por_util) || 0;
+        let imp = Number(rowP.impuesto1) || 0;
+        let precioConUtil = pb * (1 + (util / 100));
+        precioReal = precioConUtil * (1 + (imp / 100));
+      } else {
+        precioReal = prod.precio || 0;
+      }
+
+      productosReales.push({cve:cveLimpio, cant: prod.cantidad, precio: precioReal}); 
+      totalReal += precioReal * prod.cantidad;
     }
+    
     const sub=totalReal/1.16; const iva=totalReal-sub;
     await p.request().input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP).input('folio', sql.Int, folio).input('cte', sql.VarChar(20), tel).input('fec', sql.DateTime, new Date()).input('fec2', sql.DateTime, new Date(Date.now()+86400000)).input('ven', sql.VarChar(10), '01').input('ivaPorc', sql.Decimal(18,2), 16).input('tipMda', sql.VarChar(10), '01').input('valMda', sql.Decimal(18,2), 1).input('sub', sql.Decimal(18,2), sub).input('ivaTot', sql.Decimal(18,2), iva).input('lat', sql.VarChar(20), lat).input('lng', sql.VarChar(20), lng)
-.query(`INSERT INTO TH_PEDIDO (ID_SUCURSAL, ID_EMP, NUM_PED, CVE_CTE, FEC_PED, FEC_ENT, IVA, CVE_VEN, CVE_TIP_MDA, VAL_TIP_MDA, SUB_TOT, IVA_TOT, TIPO_PED, STA_PED, LAT, LNG) VALUES (@suc,@emp,@folio,@cte,@fec,@fec2,@ivaPorc,@ven,@tipMda,@valMda,@sub,@ivaTot,'WEB','P',@lat,@lng)`);
+    .query(`INSERT INTO TH_PEDIDO (ID_SUCURSAL, ID_EMP, NUM_PED, CVE_CTE, FEC_PED, FEC_ENT, IVA, CVE_VEN, CVE_TIP_MDA, VAL_TIP_MDA, SUB_TOT, IVA_TOT, TIPO_PED, STA_PED, LAT, LNG) VALUES (@suc,@emp,@folio,@cte,@fec,@fec2,@ivaPorc,@ven,@tipMda,@valMda,@sub,@ivaTot,'WEB','P',@lat,@lng)`);
+    
     let par=1;
     for(const pr of productosReales){
       await p.request().input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP).input('ped', sql.Int, folio).input('can', sql.Decimal(18,3), pr.cant).input('cve', sql.VarChar(20), pr.cve).input('pre', sql.Decimal(18,2), pr.precio).input('par', sql.Int, par).input('aut', sql.Decimal(18,3), pr.cant).input('preL', sql.Decimal(18,2), pr.precio)
-.query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
+      .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
     }
     res.json({ok:true, folio, total: totalReal});
   }catch(e){ console.error(e); res.status(500).json({ok:false, error:e.message}); }
@@ -177,10 +232,11 @@ app.post('/api/cliente/registro', async(req,res)=>{
     const {nombre, telefono, password, direccion}=req.body;
     const tel=telefono.replace(/\D/g,'').slice(-10);
     await p.request().input('cve', sql.VarChar(20), tel).input('des', sql.VarChar(100), nombre).input('pass', sql.VarChar(100), password).input('dir', sql.VarChar(200), direccion).input('emp', sql.VarChar(20), String(cfg.ID_EMP).trim())
-.query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION,EMPRESA) VALUES (@cve,@des,@pass,@dir,@emp) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
+    .query(`IF NOT EXISTS(SELECT 1 FROM C_CLIENTE WHERE CVE_CTE=@cve AND EMPRESA=@emp) INSERT INTO C_CLIENTE (CVE_CTE,DES_CTE,PASSWORD,DIRECCION,EMPRESA) VALUES (@cve,@des,@pass,@dir,@emp) ELSE UPDATE C_CLIENTE SET DES_CTE=@des, PASSWORD=@pass, DIRECCION=@dir WHERE CVE_CTE=@cve AND EMPRESA=@emp`);
     res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}) }
 });
+
 app.post('/api/cliente/login', async(req,res)=>{
   try{
     const tel = (req.body.telefono||'').toString().trim();
@@ -201,10 +257,13 @@ app.get('/api/admin/pedidos', async(req,res)=>{
     res.json(r.recordset);
   }catch(e){ res.status(500).json({error:e.message}) }
 });
+
 app.get('/api/admin/clientes', async(req,res)=>{
   try{ const p=await getPool(); const cfg=await getConfigDB(); const r=await p.request().input('emp', sql.VarChar(20), cfg.ID_EMP).query(`SELECT TOP 100 * FROM C_CLIENTE WHERE EMPRESA=@emp ORDER BY CVE_CTE DESC`); res.json(r.recordset); }catch(e){ res.status(500).json({error:e.message}) }
 });
+
 app.post('/api/admin/login', (req,res)=>{ if(req.body.user==='admin' && req.body.pass==='Admin2026!') res.json({ok:true}); else res.status(401).json({error:'No'}); });
+
 app.get('/api/admin/pedido/:folio', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
@@ -215,7 +274,6 @@ app.get('/api/admin/pedido/:folio', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-// ---- NUEVO V48 - Guardar direccion completa desde GPS y cambiar estatus ----
 app.post('/api/admin/cliente/direccion', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
@@ -225,6 +283,7 @@ app.post('/api/admin/cliente/direccion', async(req,res)=>{
     res.json({ok:true, direccion});
   }catch(e){ res.status(500).json({error:e.message}) }
 });
+
 app.post('/api/admin/pedido/estatus', async(req,res)=>{
   try{
     const p=await getPool(); const cfg=await getConfigDB();
@@ -234,7 +293,8 @@ app.post('/api/admin/pedido/estatus', async(req,res)=>{
   }catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.get('/api/health', (req,res)=>res.json({ok:true, v:48, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req,res)=>res.json({ok:true, v:49, img: fs.existsSync(imgDir)? fs.readdirSync(imgDir).length : 0 }));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
+
 const PORT=process.env.PORT||3000;
-app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V48 COMPLETO en '+PORT));
+app.listen(PORT, '0.0.0.0', ()=>console.log('BOUTIQUE V49 COMPLETO en '+PORT));
