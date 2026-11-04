@@ -3,42 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Boutique B&G - V42 Final</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<title>Boutique B&G - V43 Final</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>*{font-family:Inter,sans-serif}.no-scrollbar::-webkit-scrollbar{display:none}</style>
 </head>
-<body class="bg-[#FFF8F9]">
-<header class="sticky top-0 z-40 bg-[#0E0E0E] text-[#F5E6C8] px-4 py-3.5 flex justify-between items-center">
-<b id="nombre-tienda" style="font-family:'Playfair Display'" class="text-[22px]">Boutique B&G</b>
+<body class="bg-[#F8F9FA]">
+<header class="sticky top-0 z-40 bg-[#0E0E0E] text-[#F5E6C8] px-4 py-3.5 flex justify-between items-center shadow-md">
+<b id="nombre-tienda" style="font-family:'Playfair Display'" class="text-[22px] tracking-wide">Boutique B&G</b>
 <div class="flex gap-2 items-center">
-<span id="user-label" class="hidden text-[11px]"></span>
-<button id="btn-login-header" onclick="abrirLogin()" class="bg-white text-black px-4 py-1.5 rounded-full text-[12px] font-bold">Iniciar</button>
-<span id="logout" onclick="logout()" class="hidden text-[11px] underline cursor-pointer">Salir</span>
-<div class="relative bg-white text-black w-9 h-9 grid place-items-center rounded-full">🛒<span id="count" class="absolute -top-1 -right-1 bg-[#0F5C4A] text-white text-[10px] min-w-[18px] h-[18px] grid place-items-center rounded-full">0</span></div>
+<span id="user-label" class="hidden text-[12px] text-white/80 font-medium"></span>
+<button id="btn-login-header" onclick="abrirLogin()" class="bg-white text-black px-4 py-1.5 rounded-full text-[12px] font-bold transition hover:bg-gray-100">Iniciar</button>
+<span id="logout" onclick="logout()" class="hidden text-[11px] text-white/70 underline cursor-pointer">Salir</span>
+<div class="relative bg-white text-black w-9 h-9 grid place-items-center rounded-full shadow-inner">🛒<span id="count" class="absolute -top-1 -right-1 bg-[#0F5C4A] text-white text-[10px] min-w-[18px] h-[18px] grid place-items-center rounded-full font-bold">0</span></div>
 </div>
 </header>
 
 <div class="max-w-[1300px] mx-auto px-4 pt-4">
-<div class="bg-white rounded-[24px] p-3 shadow border border-black/5">
-<div class="relative"><span class="absolute left-4 top-3.5 opacity-40">🔍</span><input id="buscador" class="w-full bg-[#F8F5F5] rounded-full py-3.5 pl-11 pr-4 text-[14px] outline-none" placeholder="Buscar ropa, accesorios, estilo..."></div>
-<div class="flex gap-2 mt-3 overflow-auto no-scrollbar"><button class="shrink-0 bg-[#0F5C4A] text-white px-4 py-2 rounded-full text-[13px]">✨ Todo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Nuevo</button><button class="shrink-0 bg-white border px-4 py-2 rounded-full text-[13px]">Vestidos</button><button class="shrink-0 bg-[#FFE4E8] border px-4 py-2 rounded-full text-[13px]">Sale</button></div>
+<div class="bg-white rounded-[24px] p-3.5 shadow-sm border border-black/5">
+<div class="relative"><span class="absolute left-4 top-3.5 opacity-40">🔍</span><input id="buscador" class="w-full bg-[#F3F4F6] rounded-full py-3 pl-11 pr-4 text-[14px] outline-none transition focus:bg-white focus:ring-2 focus:ring-black/10" placeholder="Buscar productos, estilo, accesorios..."></div>
+<div class="flex gap-2 mt-3 overflow-auto no-scrollbar"><button class="shrink-0 bg-[#0F5C4A] text-white px-4 py-2 rounded-full text-[13px] font-medium shadow-sm">✨ Todo</button><button class="shrink-0 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-[13px] font-medium hover:bg-gray-50">Nuevo</button><button class="shrink-0 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-[13px] font-medium hover:bg-gray-50">Vestidos</button><button class="shrink-0 bg-[#FFE4E8] text-[#9b1c2e] border border-[#ffccd5] px-4 py-2 rounded-full text-[13px] font-semibold">Sale</button></div>
 </div>
 
 <!-- BANNER V42 - AJUSTADO AUTOMATICO SIN CORTES -->
 <div id="banners" class="mt-4 hidden">
-  <div id="banner-inner" class="relative rounded-[24px] overflow-hidden bg-white shadow-[0_12px_30px_rgba(0,0,0,.15)] w-full"></div>
+  <div id="banner-inner" class="relative rounded-[24px] overflow-hidden bg-white shadow-[0_12px_30px_rgba(0,0,0,.08)] w-full"></div>
   <div id="banner-dots" class="flex justify-center gap-2 mt-3"></div>
 </div>
 
 </div>
 
-<div class="max-w-[1300px] mx-auto px-4 py-5 grid lg:grid-cols-[1fr_380px] gap-5">
-<div><div class="flex justify-between items-center mb-3"><h2 class="font-bold text-[18px]">Productos Destacados</h2><span id="prod-count" class="text-[11px] text-slate-400"></span></div><div id="productos" class="grid grid-cols-2 md:grid-cols-3 gap-3">Cargando...</div></div>
-<div class="lg:sticky lg:top-[76px] h-fit"><div class="bg-white rounded-[24px] p-5 shadow border"><h3 class="font-bold">🛍️ Tu Pedido</h3><div id="carrito-lista" class="max-h-[260px] overflow-auto my-3 text-[13px]"><small class="text-slate-400">Carrito vacío</small></div><div id="total" class="font-extrabold text-[20px] border-t pt-3">Total: $0.00</div><input id="nombre" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-3 text-[13px] outline-none" placeholder="Nombre *"><input id="telefono" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 text-[13px] outline-none" placeholder="WhatsApp *"><input id="direccion" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 text-[13px] outline-none" placeholder="Dirección *"><button onclick="obtenerUbicacion()" class="w-full bg-[#F1F5F9] border border-dashed border-[#0F5C4A]/40 text-[#0F5C4A] py-3 rounded-xl text-[13px] font-semibold mt-2">📍 GPS Pedido</button><div id="loc-status" class="text-[11px] text-slate-500 mt-1">Sin ubicación</div><button id="btn-pedido" onclick="hacerPedido()" class="w-full bg-[#0E0E0E] text-white py-4 rounded-full font-bold mt-3">HACER PEDIDO ✨</button><p id="msg" class="text-[12px] text-center mt-2"></p></div></div>
+<div class="max-w-[1300px] mx-auto px-4 py-5 grid lg:grid-cols-[1fr_380px] gap-6">
+<div><div class="flex justify-between items-center mb-4"><h2 class="font-bold text-[19px] text-gray-900">Productos Destacados</h2><span id="prod-count" class="text-[12px] font-medium text-slate-400"></span></div><div id="productos" class="grid grid-cols-2 md:grid-cols-3 gap-4">Cargando...</div></div>
+<div class="lg:sticky lg:top-[76px] h-fit"><div class="bg-white rounded-[24px] p-5 shadow-sm border border-black/5"><h3 class="font-bold text-[16px] mb-1">🛍️ Tu Pedido</h3><div id="carrito-lista" class="max-h-[260px] overflow-auto my-3 text-[13px] divide-y divide-gray-100"><small class="text-slate-400">Carrito vacío</small></div><div id="total" class="font-extrabold text-[20px] border-t pt-3 text-gray-900">Total: $0.00</div><input id="nombre" class="w-full bg-[#F3F4F6] rounded-xl px-4 py-3 mt-3 text-[13px] outline-none" placeholder="Nombre *"><input id="telefono" class="w-full bg-[#F3F4F6] rounded-xl px-4 py-3 mt-2 text-[13px] outline-none" placeholder="WhatsApp *"><input id="direccion" class="w-full bg-[#F3F4F6] rounded-xl px-4 py-3 mt-2 text-[13px] outline-none" placeholder="Dirección *"><button onclick="obtenerUbicacion()" class="w-full bg-[#F8FAFC] border border-dashed border-[#0F5C4A]/40 text-[#0F5C4A] py-3 rounded-xl text-[13px] font-semibold mt-2 hover:bg-[#F1F5F9] transition">📍 GPS Pedido</button><div id="loc-status" class="text-[11px] text-slate-500 mt-1">Sin ubicación</div><button id="btn-pedido" onclick="hacerPedido()" class="w-full bg-[#0E0E0E] hover:bg-black text-white py-4 rounded-full font-bold mt-4 shadow-md transition">HACER PEDIDO ✨</button><p id="msg" class="text-[12px] text-center mt-2 font-medium"></p></div></div>
 </div>
 
-<div id="login-modal" onclick="if(event.target==this) cerrarLogin()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] hidden items-center justify-center p-4"><div class="bg-white w-full max-w-[380px] rounded-[28px] p-6 relative"><span onclick="cerrarLogin()" class="absolute right-5 top-4 w-8 h-8 grid place-items-center bg-black/5 rounded-full cursor-pointer">✕</span><h3 id="login-title" class="font-bold text-[20px]">Iniciar Sesión</h3><input id="l-tel" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-4 outline-none" placeholder="WhatsApp o admin" onkeydown="if(event.key==='Enter') enterLogin()"><input id="l-pass" class="w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 outline-none" type="password" placeholder="Contraseña" onkeydown="if(event.key==='Enter') enterLogin()"><input id="l-nom" class="hidden w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 outline-none" placeholder="Nombre completo"><input id="l-dir" class="hidden w-full bg-[#F8F5F5] rounded-xl px-4 py-3 mt-2 outline-none" placeholder="Dirección"><button class="w-full bg-[#0E0E0E] text-white py-3.5 rounded-full font-bold mt-3" onclick="doLogin()">Entrar</button><button id="btn-reg" class="hidden w-full bg-[#FFE4E8] text-black py-3.5 rounded-full font-bold mt-2" onclick="doRegistro()">Crear cuenta</button><p id="toggle-text" class="text-[12px] text-center mt-3 underline cursor-pointer" onclick="toggleModo()">¿No tienes cuenta? Regístrate</p><p id="login-msg" class="text-[12px] text-center mt-2"></p></div></div>
+<div id="login-modal" onclick="if(event.target==this) cerrarLogin()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] hidden items-center justify-center p-4"><div class="bg-white w-full max-w-[380px] rounded-[28px] p-6 relative shadow-2xl"><span onclick="cerrarLogin()" class="absolute right-5 top-4 w-8 h-8 grid place-items-center bg-black/5 rounded-full cursor-pointer hover:bg-black/10 transition">✕</span><h3 id="login-title" class="font-bold text-[20px]">Iniciar Sesión</h3><input id="l-tel" class="w-full bg-[#F3F4F6] rounded-xl px-4 py-3 mt-4 outline-none" placeholder="WhatsApp o admin" onkeydown="if(event.key==='Enter') enterLogin()"><input id="l-pass" class="w-full bg-[#F3F4F6] rounded-xl px-4 py-3 mt-2 outline-none" type="password" placeholder="Contraseña" onkeydown="if(event.key==='Enter') enterLogin()"><input id="l-nom" class="hidden w-full bg-[#F3F4F6] rounded-xl px-4 py-3 mt-2 outline-none" placeholder="Nombre completo"><input id="l-dir" class="hidden w-full bg-[#F3F4F6] rounded-xl px-4 py-3 mt-2 outline-none" placeholder="Dirección"><button class="w-full bg-[#0E0E0E] text-white py-3.5 rounded-full font-bold mt-4 shadow-md" onclick="doLogin()">Entrar</button><button id="btn-reg" class="hidden w-full bg-[#FFE4E8] text-black py-3.5 rounded-full font-bold mt-2" onclick="doRegistro()">Crear cuenta</button><p id="toggle-text" class="text-[12px] text-center mt-4 underline cursor-pointer text-gray-600" onclick="toggleModo()">¿No tienes cuenta? Regístrate</p><p id="login-msg" class="text-[12px] text-center mt-2 text-red-500"></p></div></div>
 
 <script>
 let todos=[], carrito=[], myLat=null, myLng=null, modoRegistro=false;
@@ -129,54 +129,57 @@ function renderProductos(lista){
   lista.slice(0,120).forEach(p=>{
     const cveRaw=(p.cve||'').trim();
     const cveUpper=cveRaw.toUpperCase().replace(/\s+/g,'');
-    const pre=Number(p.precio||0);
-    const existencia = Number(p.existencia || 0);
-    const el=document.createElement('div');
-    el.className="bg-white rounded-[20px] overflow-hidden border border-black/5 shadow-[0_6px_20px_rgba(0,0,0,.05)] flex flex-col justify-between";
     
-    // Imágenes (Soporte dinámico para 1, 2 o 3 imágenes)
+    // REDONDEO DEL PRECIO DE VENTA (redondeado al entero más cercano o con Math.round según prefieras, aquí redondeado a número entero para mayor limpieza visual como en apps modernas)
+    const pre = Math.round(Number(p.precio || 0));
+    const existencia = Number(p.existencia || 0);
+    
+    const el=document.createElement('div');
+    // Diseño mejorado de tarjeta tipo app comercial moderna
+    el.className="bg-white rounded-[22px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col justify-between transition-all duration-300 hover:shadow-[0_8px_25px_rgba(0,0,0,0.08)] hover:-translate-y-0.5";
+    
     const img1 = p.imagen || `/img/${encodeURIComponent(cveUpper)}.jpg`;
     const img2 = p.imagen2 || null;
     const img3 = p.imagen3 || null;
 
-    const tag = pre>80? 'Premium' : 'Nuevo';
-    const tagClass = pre>80? 'bg-[#FFE4E8] text-black' : 'bg-black text-white';
+    const tag = pre > 800 ? 'Premium' : 'Nuevo';
+    const tagClass = pre > 800 ? 'bg-[#FFE4E8] text-[#9b1c2e]' : 'bg-black text-white';
 
     let miniaturasHtml = '';
     if(img2 || img3) {
-      miniaturasHtml = `<div class="flex gap-1.5 mt-2 justify-center">
-        <button onclick="cambiarImagenProd('${cveUpper}', '${img1}')" class="w-6 h-6 rounded border overflow-hidden focus:ring-1 focus:ring-black"><img src="${img1}" class="w-full h-full object-cover"></button>
-        ${img2 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img2}')" class="w-6 h-6 rounded border overflow-hidden focus:ring-1 focus:ring-black"><img src="${img2}" class="w-full h-full object-cover"></button>` : ''}
-        ${img3 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img3}')" class="w-6 h-6 rounded border overflow-hidden focus:ring-1 focus:ring-black"><img src="${img3}" class="w-full h-full object-cover"></button>` : ''}
+      miniaturasHtml = `<div class="flex gap-1.5 mt-2.5 justify-center items-center">
+        <button onclick="cambiarImagenProd('${cveUpper}', '${img1}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img1}" class="w-full h-full object-cover"></button>
+        ${img2 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img2}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img2}" class="w-full h-full object-cover"></button>` : ''}
+        ${img3 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img3}')" class="w-7 h-7 rounded-lg border border-gray-200 overflow-hidden focus:ring-2 focus:ring-black/20 transition hover:scale-105"><img src="${img3}" class="w-full h-full object-cover"></button>` : ''}
       </div>`;
     }
 
     el.innerHTML=`
       <div>
-        <div class="h-[150px] bg-[#F8F5F5] flex items-center justify-center overflow-hidden relative">
-          <img id="img-prod-${cveUpper}" src="${img1}" loading="lazy" class="w-full h-full object-cover" onerror="this.src='/img/default.jpg'">
-          <span class="absolute top-2 left-2 text-[10px] px-2.5 py-1 rounded-full font-semibold ${tagClass}">${tag}</span>
+        <div class="h-[170px] bg-[#F8F9FA] flex items-center justify-center overflow-hidden relative group">
+          <img id="img-prod-${cveUpper}" src="${img1}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.src='/img/default.jpg'">
+          <span class="absolute top-2.5 left-2.5 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shadow-sm ${tagClass}">${tag}</span>
         </div>
-        <div class="p-3">
-          <div class="text-[12.5px] font-semibold leading-tight h-[36px] overflow-hidden">${p.nombre||cveRaw}</div>
-          <div class="flex justify-between items-center mt-1 text-[10px] text-slate-400">
-            <span>${cveRaw}</span>
-            <span>Stock: ${existencia}</span>
+        <div class="p-3.5">
+          <div class="text-[13px] font-semibold text-gray-800 leading-snug h-[38px] overflow-hidden">${p.nombre||cveRaw}</div>
+          <div class="flex justify-between items-center mt-1 text-[11px] text-gray-400 font-medium">
+            <span>Ref: ${cveRaw}</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded-md text-gray-600">Stock: ${existencia}</span>
           </div>
           ${miniaturasHtml}
-          <div class="flex justify-between items-center mt-2">
-            <div class="text-[#0F5C4A] font-extrabold text-[15px]">$${pre.toFixed(2)}</div>
-            <div class="text-[#FFB4C1] text-[11px]">★★★★★</div>
+          <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-50">
+            <div class="text-[#0F5C4A] font-black text-[17px]">$${pre.toLocaleString('es-MX')}</div>
+            <div class="text-[#f59e0b] text-[11px]">★★★★★</div>
           </div>
         </div>
       </div>
     `;
 
     const btn=document.createElement('button');
-    btn.className="w-full bg-[#0E0E0E] text-white py-2.5 rounded-full text-[12px] font-bold mt-2";
-    btn.innerText="Agregar";
+    btn.className="w-full bg-[#0E0E0E] hover:bg-black text-white py-2.5 rounded-xl text-[12px] font-bold mt-2 shadow-sm transition active:scale-[0.98]";
+    btn.innerText="COMPRAR";
     btn.onclick=()=>agregar(cveRaw, p.nombre||cveRaw, pre);
-    el.querySelector('.p-3').appendChild(btn);
+    el.querySelector('.p-3.5').appendChild(btn);
     frag.appendChild(el);
   });
   div.appendChild(frag);
@@ -188,14 +191,14 @@ function renderCarrito(){
   if(carrito.length===0) div.innerHTML='<small class=text-slate-400>Carrito vacío - agrega tu flow</small>';
   carrito.forEach((it,i)=>{
     const sub=it.precio*it.cantidad; total+=sub;
-    const row=document.createElement('div'); row.className="flex justify-between items-center py-2.5 border-b border-black/5";
-    row.innerHTML=`<div class="flex-1"><div class="font-semibold text-[12.5px]">${it.nombre}</div><div class="text-[10px] text-slate-400">${it.articulo}</div><div class="text-[#0F5C4A] font-bold text-[12px]">$${it.precio.toFixed(2)} x ${it.cantidad}</div></div>`;
+    const row=document.createElement('div'); row.className="flex justify-between items-center py-2.5";
+    row.innerHTML=`<div class="flex-1"><div class="font-semibold text-[12.5px] text-gray-800">${it.nombre}</div><div class="text-[10px] text-slate-400">${it.articulo}</div><div class="text-[#0F5C4A] font-bold text-[12px]">$${it.precio.toLocaleString('es-MX')} x ${it.cantidad}</div></div>`;
     const ctrl=document.createElement('div'); ctrl.className="flex items-center gap-1.5";
-    ctrl.innerHTML=`<button class="w-7 h-7 rounded-full bg-black/5">-</button><b class="text-[12px] w-4 text-center">${it.cantidad}</b><button class="w-7 h-7 rounded-full bg-black/5">+</button><span class="cursor-pointer ml-1">✕</span>`;
+    ctrl.innerHTML=`<button class="w-7 h-7 rounded-full bg-gray-100 text-gray-700 font-bold hover:bg-gray-200">-</button><b class="text-[12px] w-4 text-center">${it.cantidad}</b><button class="w-7 h-7 rounded-full bg-gray-100 text-gray-700 font-bold hover:bg-gray-200">+</button><span class="cursor-pointer ml-1 text-gray-400 hover:text-red-500">✕</span>`;
     ctrl.children[0].onclick=()=>cambiarCant(i,-1); ctrl.children[2].onclick=()=>cambiarCant(i,1); ctrl.children[3].onclick=()=>{carrito.splice(i,1);renderCarrito()};
     row.appendChild(ctrl); div.appendChild(row);
   });
-  document.getElementById('total').innerText=`Total: $${total.toFixed(2)}`;
+  document.getElementById('total').innerText=`Total: $${total.toLocaleString('es-MX')}.00`;
   document.getElementById('count').innerText=carrito.reduce((s,p)=>s+p.cantidad,0);
 }
 function cambiarCant(i,d){ carrito[i].cantidad+=d; if(carrito[i].cantidad<=0) carrito.splice(i,1); renderCarrito(); }
@@ -207,7 +210,7 @@ async function hacerPedido(){
   const nombre=document.getElementById('nombre').value.trim(); const telefono=document.getElementById('telefono').value.trim(); const direccion=document.getElementById('direccion').value.trim();
   if(!nombre||!telefono||!direccion) return alert('Falta datos');
   document.getElementById('btn-pedido').disabled=true; document.getElementById('msg').innerText='Guardando...';
-  try{ const res=await fetch('/api/pedidos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre, telefono, direccion, lat:myLat, lng:myLng, total: carrito.reduce((s,p)=>s+p.precio*p.cantidad,0), productos: carrito.map(p=>({cve:p.articulo, cantidad:p.cantidad, precio:p.precio}))})}); const j=await res.json(); if(j.ok){ document.getElementById('msg').innerHTML=`✅ Pedido #${j.folio} $${j.total.toFixed(2)}`; carrito=[]; renderCarrito(); } else document.getElementById('msg').innerText='❌ '+j.error; }catch(e){ document.getElementById('msg').innerText='❌ '+e.message; }
+  try{ const res=await fetch('/api/pedidos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre, telefono, direccion, lat:myLat, lng:myLng, total: carrito.reduce((s,p)=>s+p.precio*p.cantidad,0), productos: carrito.map(p=>({cve:p.articulo, cantidad:p.cantidad, precio:p.precio}))})}); const j=await res.json(); if(j.ok){ document.getElementById('msg').innerHTML=`✅ Pedido #${j.folio} $${j.total.toLocaleString('es-MX')}.00`; carrito=[]; renderCarrito(); } else document.getElementById('msg').innerText='❌ '+j.error; }catch(e){ document.getElementById('msg').innerText='❌ '+e.message; }
   document.getElementById('btn-pedido').disabled=false;
 }
 init();
