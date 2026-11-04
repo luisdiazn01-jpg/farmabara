@@ -5,7 +5,14 @@ const path = require('path');
 const fs = require('fs');
 const sql = require('mssql');
 const multer = require('multer');
-const ftp = require('basic-ftp');
+
+// Intentamos cargar basic-ftp de forma segura
+let ftp = null;
+try {
+  ftp = require('basic-ftp');
+} catch (e) {
+  console.log('⚠️ basic-ftp no disponible, modo local activo');
+}
 
 const app = express();
 app.use(cors());
@@ -67,10 +74,11 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- FUNCIÓN DE DESCARGA AUTOMÁTICA DESDE EL FTP ----
+// ---- DESCARGA AUTOMÁTICA DESDE EL FTP SEGURA ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
   if (fs.existsSync(localFilePath)) return true;
+  if (!ftp) return false;
 
   const client = new ftp.Client();
   client.ftp.verbose = false;
@@ -107,7 +115,7 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
   }
 }
 
-// Proxy para servir y descargar imágenes del FTP automáticamente
+// Proxy para servir imágenes
 app.get('/img-proxy/:sku', async (req, res) => {
   const filename = req.params.sku;
   const localFilePath = path.join(imgDir, filename);
@@ -120,7 +128,10 @@ app.get('/img-proxy/:sku', async (req, res) => {
   if (success && fs.existsSync(localFilePath)) {
     return res.sendFile(localFilePath);
   } else {
-    return res.status(404).send('Imagen no encontrada');
+    // Si no está en el FTP, enviamos un pixel transparente o un estado 404 limpio sin romper la web
+    const defaultPath = path.join(imgDir, 'default.jpg');
+    if (fs.existsSync(defaultPath)) return res.sendFile(defaultPath);
+    return res.status(404).send('No image');
   }
 });
 
@@ -364,8 +375,8 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, v: 52, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req, res) => res.json({ ok: true, v: 53, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V52 COMPLETO en ' + PORT));
+app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V53 COMPLETO en ' + PORT));
