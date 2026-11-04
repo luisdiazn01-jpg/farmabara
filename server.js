@@ -73,14 +73,14 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- DESCARGA INTELIGENTE LISTANDO EL DIRECTORIO FTP ----
+// ---- DESCARGA CON DIAGNÓSTICO DE RUTA FTP ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
   if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) return true;
   if (!ftp) return false;
 
   const client = new ftp.Client();
-  client.ftp.verbose = false;
+  client.ftp.verbose = true; // Imprime todo el tráfico FTP en la consola de Coolify
   try {
     await client.access({
       host: "sysptv.webhop.net",
@@ -89,10 +89,25 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       secure: false
     });
 
-    // Listar archivos del directorio actual del FTP para encontrar coincidencia exacta sin importar mayúsculas
-    const listFiles = await client.list();
+    const currentPwd = await client.pwd();
+    console.log("📂 [FTP DIAGNOSTICO] Directorio actual (PWD):", currentPwd);
+
+    let listFiles = [];
+    try {
+      listFiles = await client.list();
+      console.log("📂 [FTP DIAGNOSTICO] Archivos encontrados:", listFiles.map(f => f.name));
+    } catch (eList) {
+      console.log("⚠️ [FTP DIAGNOSTICO] No se pudo listar el directorio raíz, intentando entrar a 07082026");
+      try {
+        await client.cd('07082026');
+        listFiles = await client.list();
+        console.log("📂 [FTP DIAGNOSTICO] Archivos en /07082026:", listFiles.map(f => f.name));
+      } catch (eCd) {
+        console.log("❌ [FTP DIAGNOSTICO] Error al entrar a la carpeta:", eCd.message);
+      }
+    }
+
     const baseClean = path.basename(nombreArchivo, path.extname(nombreArchivo)).toLowerCase();
-    
     let archivoRemotoEncontrado = null;
     
     for (const file of listFiles) {
@@ -106,40 +121,17 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
     }
 
     if (archivoRemotoEncontrado) {
+      console.log("✅ [FTP DIAGNOSTICO] Archivo localizado en servidor:", archivoRemotoEncontrado);
       await client.downloadTo(localFilePath, archivoRemotoEncontrado);
       client.close();
       return fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0;
     }
 
-    // Si no se encontró por coincidencia exacta y es miniatura secundaria, clonar la principal
-    if (nombreArchivo.includes('_2') || nombreArchivo.includes('_3')) {
-      const baseSku = baseClean.replace(/(_2|_3)$/, '');
-      let principalRemota = null;
-      for (const file of listFiles) {
-        if (file.isFile) {
-          const fBase = path.basename(file.name, path.extname(file.name)).toLowerCase();
-          if (fBase === baseSku) {
-            principalRemota = file.name;
-            break;
-          }
-        }
-      }
-
-      if (principalRemota) {
-        const localPrincipalPath = path.join(imgDir, principalRemota);
-        await client.downloadTo(localPrincipalPath, principalRemota);
-        if (fs.existsSync(localPrincipalPath) && fs.statSync(localPrincipalPath).size > 0) {
-          fs.copyFileSync(localPrincipalPath, localFilePath);
-          try { await client.uploadFrom(localFilePath, nombreArchivo); } catch(e) {}
-          client.close();
-          return true;
-        }
-      }
-    }
-
+    console.log("❌ [FTP DIAGNOSTICO] No se encontró el archivo remoto para:", nombreArchivo);
     client.close();
     return false;
   } catch (err) {
+    console.log("❌ [FTP ERROR GENERAL]:", err.message);
     client.close();
     return false;
   }
@@ -158,7 +150,6 @@ app.get('/img-proxy/:sku', async (req, res) => {
   if (success && fs.existsSync(localFilePath)) {
     return res.sendFile(localFilePath);
   } else {
-    // Buscar variantes locales
     const filesLocales = fs.existsSync(imgDir) ? fs.readdirSync(imgDir) : [];
     const baseClean = path.basename(filename, path.extname(filename)).toLowerCase();
     const matchLocal = filesLocales.find(f => path.basename(f, path.extname(f)).toLowerCase() === baseClean);
@@ -409,12 +400,4 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
     await p.request().input('folio', sql.Int, parseInt(folio)).input('est', sql.VarChar(5), estatus).input('suc', sql.SmallInt, cfg.ID_SUCURSAL).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`UPDATE TH_PEDIDO SET STA_PED=@est WHERE NUM_PED=@folio AND ID_SUCURSAL=@suc AND ID_EMP=@emp`);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/health', (req, res) => res.json({ ok: true, v: 58, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V58 COMPLETO en ' + PORT));
+    res.
