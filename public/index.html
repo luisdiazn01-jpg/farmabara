@@ -112,6 +112,15 @@ async function init(){
     document.getElementById('productos').innerHTML = 'Error cargando: '+e.message;
   }
 }
+
+// Función para alternar entre miniaturas de imágenes múltiples por producto
+function cambiarImagenProd(cveClean, urlImg) {
+  const imgElem = document.getElementById(`img-prod-${cveClean}`);
+  if(imgElem && urlImg) {
+    imgElem.src = urlImg;
+  }
+}
+
 function renderProductos(lista){
   const div=document.getElementById('productos');
   div.innerHTML='';
@@ -121,11 +130,48 @@ function renderProductos(lista){
     const cveRaw=(p.cve||'').trim();
     const cveUpper=cveRaw.toUpperCase().replace(/\s+/g,'');
     const pre=Number(p.precio||0);
+    const existencia = Number(p.existencia || 0);
     const el=document.createElement('div');
-    el.className="bg-white rounded-[20px] overflow-hidden border border-black/5 shadow-[0_6px_20px_rgba(0,0,0,.05)]";
+    el.className="bg-white rounded-[20px] overflow-hidden border border-black/5 shadow-[0_6px_20px_rgba(0,0,0,.05)] flex flex-col justify-between";
+    
+    // Imágenes (Soporte dinámico para 1, 2 o 3 imágenes)
+    const img1 = p.imagen || `/img/${encodeURIComponent(cveUpper)}.jpg`;
+    const img2 = p.imagen2 || null;
+    const img3 = p.imagen3 || null;
+
     const tag = pre>80? 'Premium' : 'Nuevo';
     const tagClass = pre>80? 'bg-[#FFE4E8] text-black' : 'bg-black text-white';
-    el.innerHTML=`<div class="h-[150px] bg-[#F8F5F5] flex items-center justify-center overflow-hidden relative"><img src="/img/${encodeURIComponent(cveUpper)}.jpg" loading="lazy" class="w-full h-full object-cover" onerror="this.style.display='none'"><span class="absolute top-2 left-2 text-[10px] px-2.5 py-1 rounded-full font-semibold ${tagClass}">${tag}</span></div><div class="p-3"><div class="text-[12.5px] font-semibold leading-tight h-[36px] overflow-hidden">${p.nombre||cveRaw}</div><div class="text-[10px] text-slate-400 mt-1">${cveRaw}</div><div class="flex justify-between items-center mt-2"><div class="text-[#0F5C4A] font-extrabold text-[15px]">$${pre.toFixed(2)}</div><div class="text-[#FFB4C1] text-[11px]">★★★★★</div></div></div>`;
+
+    let miniaturasHtml = '';
+    if(img2 || img3) {
+      miniaturasHtml = `<div class="flex gap-1.5 mt-2 justify-center">
+        <button onclick="cambiarImagenProd('${cveUpper}', '${img1}')" class="w-6 h-6 rounded border overflow-hidden focus:ring-1 focus:ring-black"><img src="${img1}" class="w-full h-full object-cover"></button>
+        ${img2 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img2}')" class="w-6 h-6 rounded border overflow-hidden focus:ring-1 focus:ring-black"><img src="${img2}" class="w-full h-full object-cover"></button>` : ''}
+        ${img3 ? `<button onclick="cambiarImagenProd('${cveUpper}', '${img3}')" class="w-6 h-6 rounded border overflow-hidden focus:ring-1 focus:ring-black"><img src="${img3}" class="w-full h-full object-cover"></button>` : ''}
+      </div>`;
+    }
+
+    el.innerHTML=`
+      <div>
+        <div class="h-[150px] bg-[#F8F5F5] flex items-center justify-center overflow-hidden relative">
+          <img id="img-prod-${cveUpper}" src="${img1}" loading="lazy" class="w-full h-full object-cover" onerror="this.src='/img/default.jpg'">
+          <span class="absolute top-2 left-2 text-[10px] px-2.5 py-1 rounded-full font-semibold ${tagClass}">${tag}</span>
+        </div>
+        <div class="p-3">
+          <div class="text-[12.5px] font-semibold leading-tight h-[36px] overflow-hidden">${p.nombre||cveRaw}</div>
+          <div class="flex justify-between items-center mt-1 text-[10px] text-slate-400">
+            <span>${cveRaw}</span>
+            <span>Stock: ${existencia}</span>
+          </div>
+          ${miniaturasHtml}
+          <div class="flex justify-between items-center mt-2">
+            <div class="text-[#0F5C4A] font-extrabold text-[15px]">$${pre.toFixed(2)}</div>
+            <div class="text-[#FFB4C1] text-[11px]">★★★★★</div>
+          </div>
+        </div>
+      </div>
+    `;
+
     const btn=document.createElement('button');
     btn.className="w-full bg-[#0E0E0E] text-white py-2.5 rounded-full text-[12px] font-bold mt-2";
     btn.innerText="Agregar";
@@ -135,6 +181,7 @@ function renderProductos(lista){
   });
   div.appendChild(frag);
 }
+
 function agregar(articulo,nombre,precio){ let f=carrito.find(x=>x.articulo===articulo); if(f) f.cantidad++; else carrito.push({articulo, nombre, precio:Number(precio), cantidad:1}); renderCarrito(); }
 function renderCarrito(){
   const div=document.getElementById('carrito-lista'); let total=0; div.innerHTML='';
