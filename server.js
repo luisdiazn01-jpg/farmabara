@@ -10,7 +10,7 @@ let ftp = null;
 try {
   ftp = require('basic-ftp');
 } catch (e) {
-  console.log('⚠️ basic-ftp no disponible, modo local activo');
+  console.log('⚠️ basic-ftp no disponible');
 }
 
 const app = express();
@@ -73,14 +73,14 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- DESCARGA CON DIAGNÓSTICO DE RUTA FTP ----
+// ---- DESCARGA FTP PROTEGIDA (CERO RIESGO DE CRASH) ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
   if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) return true;
   if (!ftp) return false;
 
   const client = new ftp.Client();
-  client.ftp.verbose = true; // Imprime todo el tráfico FTP en la consola de Coolify
+  client.ftp.verbose = false;
   try {
     await client.access({
       host: "sysptv.webhop.net",
@@ -89,29 +89,21 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       secure: false
     });
 
-    const currentPwd = await client.pwd();
-    console.log("📂 [FTP DIAGNOSTICO] Directorio actual (PWD):", currentPwd);
-
     let listFiles = [];
     try {
       listFiles = await client.list();
-      console.log("📂 [FTP DIAGNOSTICO] Archivos encontrados:", listFiles.map(f => f.name));
     } catch (eList) {
-      console.log("⚠️ [FTP DIAGNOSTICO] No se pudo listar el directorio raíz, intentando entrar a 07082026");
       try {
         await client.cd('07082026');
         listFiles = await client.list();
-        console.log("📂 [FTP DIAGNOSTICO] Archivos en /07082026:", listFiles.map(f => f.name));
-      } catch (eCd) {
-        console.log("❌ [FTP DIAGNOSTICO] Error al entrar a la carpeta:", eCd.message);
-      }
+      } catch (eCd) {}
     }
 
     const baseClean = path.basename(nombreArchivo, path.extname(nombreArchivo)).toLowerCase();
     let archivoRemotoEncontrado = null;
     
     for (const file of listFiles) {
-      if (file.isFile) {
+      if (file && file.isFile && file.name) {
         const fBase = path.basename(file.name, path.extname(file.name)).toLowerCase();
         if (fBase === baseClean) {
           archivoRemotoEncontrado = file.name;
@@ -121,46 +113,47 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
     }
 
     if (archivoRemotoEncontrado) {
-      console.log("✅ [FTP DIAGNOSTICO] Archivo localizado en servidor:", archivoRemotoEncontrado);
       await client.downloadTo(localFilePath, archivoRemotoEncontrado);
       client.close();
       return fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0;
     }
 
-    console.log("❌ [FTP DIAGNOSTICO] No se encontró el archivo remoto para:", nombreArchivo);
     client.close();
     return false;
   } catch (err) {
-    console.log("❌ [FTP ERROR GENERAL]:", err.message);
-    client.close();
+    try { client.close(); } catch (e) {}
     return false;
   }
 }
 
 // Proxy inteligente para servir imágenes
 app.get('/img-proxy/:sku', async (req, res) => {
-  const filename = req.params.sku;
-  const localFilePath = path.join(imgDir, filename);
+  try {
+    const filename = req.params.sku;
+    const localFilePath = path.join(imgDir, filename);
 
-  if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) {
-    return res.sendFile(localFilePath);
-  }
-
-  const success = await obtenerImagenDesdeFTP(filename);
-  if (success && fs.existsSync(localFilePath)) {
-    return res.sendFile(localFilePath);
-  } else {
-    const filesLocales = fs.existsSync(imgDir) ? fs.readdirSync(imgDir) : [];
-    const baseClean = path.basename(filename, path.extname(filename)).toLowerCase();
-    const matchLocal = filesLocales.find(f => path.basename(f, path.extname(f)).toLowerCase() === baseClean);
-    if (matchLocal) {
-      return res.sendFile(path.join(imgDir, matchLocal));
+    if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).size > 0) {
+      return res.sendFile(localFilePath);
     }
 
-    const defaultPath = path.join(imgDir, 'default.jpg');
-    if (fs.existsSync(defaultPath)) return res.sendFile(defaultPath);
-    
-    return res.status(404).send('No image');
+    const success = await obtenerImagenDesdeFTP(filename);
+    if (success && fs.existsSync(localFilePath)) {
+      return res.sendFile(localFilePath);
+    } else {
+      const filesLocales = fs.existsSync(imgDir) ? fs.readdirSync(imgDir) : [];
+      const baseClean = path.basename(filename, path.extname(filename)).toLowerCase();
+      const matchLocal = filesLocales.find(f => path.basename(f, path.extname(f)).toLowerCase() === baseClean);
+      if (matchLocal) {
+        return res.sendFile(path.join(imgDir, matchLocal));
+      }
+
+      const defaultPath = path.join(imgDir, 'default.jpg');
+      if (fs.existsSync(defaultPath)) return res.sendFile(defaultPath);
+      
+      return res.status(404).send('No image');
+    }
+  } catch (e) {
+    return res.status(404).send('Error');
   }
 });
 
@@ -400,4 +393,12 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
     await p.request().input('folio', sql.Int, parseInt(folio)).input('est', sql.VarChar(5), estatus).input('suc', sql.SmallInt, cfg.ID_SUCURSAL).input('emp', sql.VarChar(20), cfg.ID_EMP).query(`UPDATE TH_PEDIDO SET STA_PED=@est WHERE NUM_PED=@folio AND ID_SUCURSAL=@suc AND ID_EMP=@emp`);
     res.json({ ok: true });
   } catch (e) {
-    res.
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/health', (req, res) => res.json({ ok: true, v: 60, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V60 COMPLETO en ' + PORT));
