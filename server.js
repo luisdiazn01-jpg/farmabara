@@ -73,7 +73,7 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- DESCARGA Y AUTOSINCRONIZACIÓN INTELIGENTE CON EL FTP ----
+// ---- DESCARGA DIRECTA DESDE LA RAÍZ DEL USUARIO FTP ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
   if (fs.existsSync(localFilePath)) return true;
@@ -88,15 +88,34 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       password: "Sysptv_2026",
       secure: false
     });
-    
-    // Intentar descargar directamente del FTP
+
+    // 1. Probar descarga directa tal cual viene (ej. 041186000415.jpg o .JPG)
     try {
       await client.downloadTo(localFilePath, nombreArchivo);
       client.close();
       return true;
     } catch (errFtp) {
-      // Si es una imagen secundaria (ej. SKU_2.jpg o SKU_3.jpg) y no existe en el FTP,
-      // descargamos la imagen principal (SKU.jpg) y la clonamos automáticamente como respaldo.
+      // 2. Si es archivo .jpg, probar versión en mayúsculas .JPG
+      if (nombreArchivo.endsWith('.jpg')) {
+        const altJPG = nombreArchivo.replace('.jpg', '.JPG');
+        try {
+          await client.downloadTo(localFilePath, altJPG);
+          client.close();
+          return true;
+        } catch (e) {}
+      }
+
+      // 3. Si es archivo .JPG, probar versión en minúsculas .jpg
+      if (nombreArchivo.endsWith('.JPG')) {
+        const altjpg = nombreArchivo.replace('.JPG', '.jpg');
+        try {
+          await client.downloadTo(localFilePath, altjpg);
+          client.close();
+          return true;
+        } catch (e) {}
+      }
+
+      // 4. Si se solicitó miniatura secundaria (SKU_2.jpg / SKU_3.jpg) y no existe, clonamos SKU.jpg
       if (nombreArchivo.includes('_2.jpg') || nombreArchivo.includes('_3.jpg') || nombreArchivo.includes('_2.JPG') || nombreArchivo.includes('_3.JPG')) {
         const baseSku = nombreArchivo.replace(/(_2|_3)\.(jpg|JPG)$/i, '');
         const ext = nombreArchivo.endsWith('.JPG') ? '.JPG' : '.jpg';
@@ -107,34 +126,11 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
           await client.downloadTo(localPrincipalPath, principalFile);
           if (fs.existsSync(localPrincipalPath)) {
             fs.copyFileSync(localPrincipalPath, localFilePath);
-            // Sincronizar y subir la copia generada de vuelta al FTP en segundo plano
             await client.uploadFrom(localFilePath, nombreArchivo);
             client.close();
             return true;
           }
-        } catch (eClon) {
-          // Si tampoco existe la principal, intentamos con extensión alterna
-          const altPrincipal = baseSku + (ext === '.jpg' ? '.JPG' : '.jpg');
-          try {
-            await client.downloadTo(localPrincipalPath, altPrincipal);
-            if (fs.existsSync(localPrincipalPath)) {
-              fs.copyFileSync(localPrincipalPath, localFilePath);
-              await client.uploadFrom(localFilePath, nombreArchivo);
-              client.close();
-              return true;
-            }
-          } catch (eAlt) {}
-        }
-      }
-
-      // Intentar variante en mayúsculas genérica si es `.jpg`
-      if (nombreArchivo.endsWith('.jpg')) {
-        const altName = nombreArchivo.replace('.jpg', '.JPG');
-        try {
-          await client.downloadTo(localFilePath, altName);
-          client.close();
-          return true;
-        } catch (e) {}
+        } catch (eClon) {}
       }
 
       client.close();
@@ -146,7 +142,7 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
   }
 }
 
-// Proxy inteligente para servir y auto-generar imágenes
+// Proxy para servir imágenes
 app.get('/img-proxy/:sku', async (req, res) => {
   const filename = req.params.sku;
   const localFilePath = path.join(imgDir, filename);
@@ -159,10 +155,9 @@ app.get('/img-proxy/:sku', async (req, res) => {
   if (success && fs.existsSync(localFilePath)) {
     return res.sendFile(localFilePath);
   } else {
-    // Si definitivamente no existe ninguna variante, usamos la imagen por defecto o la principal como comodín
-    const baseClean = filename.replace(/(_2|_3)\.(jpg|JPG)$/i, '.jpg');
-    const fallbackPath = path.join(imgDir, baseClean);
-    if (fs.existsSync(fallbackPath)) return res.sendFile(fallbackPath);
+    let altExt = filename.endsWith('.jpg') ? filename.replace('.jpg', '.JPG') : filename.replace('.JPG', '.jpg');
+    let altLocal = path.join(imgDir, altExt);
+    if (fs.existsSync(altLocal)) return res.sendFile(altLocal);
 
     const defaultPath = path.join(imgDir, 'default.jpg');
     if (fs.existsSync(defaultPath)) return res.sendFile(defaultPath);
@@ -321,7 +316,7 @@ async function guardarPedido(req, res) {
     let par = 1;
     for (const pr of productosReales) {
       await p.request().input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP).input('ped', sql.Int, folio).input('can', sql.Decimal(18, 3), pr.cant).input('cve', sql.VarChar(20), pr.cve).input('pre', sql.Decimal(18, 2), pr.precio).input('par', sql.Int, par).input('aut', sql.Decimal(18, 3), pr.cant).input('preL', sql.Decimal(18, 2), pr.precio)
-      .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
+      .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
     }
     res.json({ ok: true, folio, total: totalReal });
   } catch (e) {
@@ -411,8 +406,8 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, v: 54, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req, res) => res.json({ ok: true, v: 56, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V54 COMPLETO en ' + PORT));
+app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V56 COMPLETO en ' + PORT));
