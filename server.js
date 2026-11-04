@@ -6,7 +6,6 @@ const fs = require('fs');
 const sql = require('mssql');
 const multer = require('multer');
 
-// Intentamos cargar basic-ftp de forma segura
 let ftp = null;
 try {
   ftp = require('basic-ftp');
@@ -74,7 +73,7 @@ async function ensureTables() {
 }
 ensureTables();
 
-// ---- DESCARGA AUTOMÁTICA DESDE EL FTP SEGURA ----
+// ---- DESCARGA Y AUTOSINCRONIZACIÓN INTELIGENTE CON EL FTP ----
 async function obtenerImagenDesdeFTP(nombreArchivo) {
   const localFilePath = path.join(imgDir, nombreArchivo);
   if (fs.existsSync(localFilePath)) return true;
@@ -89,33 +88,65 @@ async function obtenerImagenDesdeFTP(nombreArchivo) {
       password: "Sysptv_2026",
       secure: false
     });
-    await client.downloadTo(localFilePath, nombreArchivo);
-    client.close();
-    return true;
+    
+    // Intentar descargar directamente del FTP
+    try {
+      await client.downloadTo(localFilePath, nombreArchivo);
+      client.close();
+      return true;
+    } catch (errFtp) {
+      // Si es una imagen secundaria (ej. SKU_2.jpg o SKU_3.jpg) y no existe en el FTP,
+      // descargamos la imagen principal (SKU.jpg) y la clonamos automáticamente como respaldo.
+      if (nombreArchivo.includes('_2.jpg') || nombreArchivo.includes('_3.jpg') || nombreArchivo.includes('_2.JPG') || nombreArchivo.includes('_3.JPG')) {
+        const baseSku = nombreArchivo.replace(/(_2|_3)\.(jpg|JPG)$/i, '');
+        const ext = nombreArchivo.endsWith('.JPG') ? '.JPG' : '.jpg';
+        const principalFile = baseSku + ext;
+        const localPrincipalPath = path.join(imgDir, principalFile);
+
+        try {
+          await client.downloadTo(localPrincipalPath, principalFile);
+          if (fs.existsSync(localPrincipalPath)) {
+            fs.copyFileSync(localPrincipalPath, localFilePath);
+            // Sincronizar y subir la copia generada de vuelta al FTP en segundo plano
+            await client.uploadFrom(localFilePath, nombreArchivo);
+            client.close();
+            return true;
+          }
+        } catch (eClon) {
+          // Si tampoco existe la principal, intentamos con extensión alterna
+          const altPrincipal = baseSku + (ext === '.jpg' ? '.JPG' : '.jpg');
+          try {
+            await client.downloadTo(localPrincipalPath, altPrincipal);
+            if (fs.existsSync(localPrincipalPath)) {
+              fs.copyFileSync(localPrincipalPath, localFilePath);
+              await client.uploadFrom(localFilePath, nombreArchivo);
+              client.close();
+              return true;
+            }
+          } catch (eAlt) {}
+        }
+      }
+
+      // Intentar variante en mayúsculas genérica si es `.jpg`
+      if (nombreArchivo.endsWith('.jpg')) {
+        const altName = nombreArchivo.replace('.jpg', '.JPG');
+        try {
+          await client.downloadTo(localFilePath, altName);
+          client.close();
+          return true;
+        } catch (e) {}
+      }
+
+      client.close();
+      return false;
+    }
   } catch (err) {
     client.close();
-    if (nombreArchivo.endsWith('.jpg')) {
-      const altName = nombreArchivo.replace('.jpg', '.JPG');
-      try {
-        const client2 = new ftp.Client();
-        await client2.access({
-          host: "sysptv.webhop.net",
-          user: "WEB",
-          password: "Sysptv_2026",
-          secure: false
-        });
-        await client2.downloadTo(localFilePath, altName);
-        client2.close();
-        return true;
-      } catch (e) {
-        return false;
-      }
-    }
     return false;
   }
 }
 
-// Proxy para servir imágenes
+// Proxy inteligente para servir y auto-generar imágenes
 app.get('/img-proxy/:sku', async (req, res) => {
   const filename = req.params.sku;
   const localFilePath = path.join(imgDir, filename);
@@ -128,9 +159,14 @@ app.get('/img-proxy/:sku', async (req, res) => {
   if (success && fs.existsSync(localFilePath)) {
     return res.sendFile(localFilePath);
   } else {
-    // Si no está en el FTP, enviamos un pixel transparente o un estado 404 limpio sin romper la web
+    // Si definitivamente no existe ninguna variante, usamos la imagen por defecto o la principal como comodín
+    const baseClean = filename.replace(/(_2|_3)\.(jpg|JPG)$/i, '.jpg');
+    const fallbackPath = path.join(imgDir, baseClean);
+    if (fs.existsSync(fallbackPath)) return res.sendFile(fallbackPath);
+
     const defaultPath = path.join(imgDir, 'default.jpg');
     if (fs.existsSync(defaultPath)) return res.sendFile(defaultPath);
+    
     return res.status(404).send('No image');
   }
 });
@@ -285,7 +321,7 @@ async function guardarPedido(req, res) {
     let par = 1;
     for (const pr of productosReales) {
       await p.request().input('suc', sql.SmallInt, SUC).input('emp', sql.VarChar(20), EMP).input('ped', sql.Int, folio).input('can', sql.Decimal(18, 3), pr.cant).input('cve', sql.VarChar(20), pr.cve).input('pre', sql.Decimal(18, 2), pr.precio).input('par', sql.Int, par).input('aut', sql.Decimal(18, 3), pr.cant).input('preL', sql.Decimal(18, 2), pr.precio)
-      .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,'',@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
+      .query(`INSERT INTO TD_PEDIDO (ID_SUCURSAL,ID_EMP,NUM_PED,CAN_PRO,CVE_PRO,PRE_PRO,DESC_CTE,DESC_FIN,OBS_PRO,NUM_PAR,CAN_AUT,pre_desc_lista,pre_lista,iva,TIPO,PRE_SOL) VALUES (@suc,@emp,@ped,@can,@cve,@pre,0,0,@par,@aut,@preL,@preL,16,'P',@pre)`); par++;
     }
     res.json({ ok: true, folio, total: totalReal });
   } catch (e) {
@@ -375,8 +411,8 @@ app.post('/api/admin/pedido/estatus', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, v: 53, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
+app.get('/api/health', (req, res) => res.json({ ok: true, v: 54, img: fs.existsSync(imgDir) ? fs.readdirSync(imgDir).length : 0 }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V53 COMPLETO en ' + PORT));
+app.listen(PORT, '0.0.0.0', () => console.log('BOUTIQUE V54 COMPLETO en ' + PORT));
